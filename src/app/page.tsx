@@ -1,65 +1,94 @@
-import Image from "next/image";
+'use client';
+
+import { GameStatus } from '../components/GameStatus';
+import { RaceTrack } from '../components/RaceTrack';
+import { BettingPanel } from '../components/BettingPanel';
+import { RaceHistoryTicker } from '../components/RaceHistoryTicker';
+import { SchedulePanel } from '../components/SchedulePanel';
+import { WinnerBanner } from '../components/WinnerBanner';
+import { AlphaLeakPanel } from '../components/AlphaLeakPanel';
+import { BankingPanel } from '../components/BankingPanel';
+import { BettingSlip } from '../components/BettingSlip';
+import { WalletSync } from '../components/WalletSync';
+import { useAudioEngine } from '../hooks/useAudioEngine';
+import { Volume2, VolumeX } from 'lucide-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export default function Home() {
+  const { isMuted, toggleMute } = useAudioEngine();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-black text-white selection:bg-blue-500/30 font-sans background-gradient flex flex-col">
+      <WalletSync />
+      {/* Top Banner Ticker */}
+      <RaceHistoryTicker />
+
+      {/* Main Content Area */}
+      <div className="flex-1 p-4 md:p-6 lg:p-8">
+
+        {/* Header section */}
+        <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 relative">
+
+          <div className="flex flex-col flex-1 pl-4 md:pl-0 border-l-4 border-blue-500 md:border-none">
+            <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 relative inline-block drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+              WACKY RACES
+            </h1>
+            <p className="text-gray-400 font-medium tracking-wide text-sm md:text-base uppercase mt-1">
+              Testnet Web3 Derbies
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-4">
+            <button
+              onClick={toggleMute}
+              className="w-12 h-12 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer z-50 text-gray-300 hover:text-white group"
+              title={isMuted ? "Unmute Sound Effects" : "Mute Sound Effects"}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+              {isMuted ? <VolumeX className="w-6 h-6 group-hover:scale-110 transition-transform" /> : <Volume2 className="w-6 h-6 group-hover:scale-110 transition-transform text-green-400" />}
+            </button>
+            <WalletMultiButton className="!bg-blue-600 hover:!bg-blue-500 transition-colors !rounded-full !h-12 !px-6 !font-bold" />
+            <GameStatus />
+          </div>
+        </header>
+
+        {/* Main Content Grid */}
+        <main className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
+
+          {/* Left Column: Track & Schedule */}
+          <div className="xl:col-span-8 flex flex-col gap-6 relative">
+
+            {/* The Track Container */}
+            <div className="relative">
+              <WinnerBanner />
+              <RaceTrack />
+            </div>
+
+            {/* Sub Track Data */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <SchedulePanel />
+              <AlphaLeakPanel />
+            </div>
+          </div>
+
+          {/* Right Column: Betting Panel */}
+          <div className="xl:col-span-4 sticky top-6 flex flex-col gap-6">
+            <BankingPanel />
+            <BettingSlip />
+            <BettingPanel />
+          </div>
+
+        </main>
+      </div>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .background-gradient {
+          background: radial-gradient(circle at 15% 50%, rgba(20, 10, 40, 0.4), transparent 50%),
+                      radial-gradient(circle at 85% 30%, rgba(10, 30, 60, 0.3), transparent 50%),
+                      radial-gradient(circle at 50% 80%, rgba(40, 10, 30, 0.4), transparent 50%),
+                      #0f0c1b;
+        }
+      `}} />
     </div>
   );
 }
