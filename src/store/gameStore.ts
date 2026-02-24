@@ -16,6 +16,8 @@ interface GameState {
     walletAddress: string | null;
     alphaLeaks: { token: Token, text: string }[];
     racingTimePassed: number;
+    currentRake: number;
+    referralFee: number;
 
     // Actions
     placeBet: (tokenId: TokenId, amount: number, walletPublicKey?: string) => void;
@@ -25,6 +27,7 @@ interface GameState {
     updateLivePrice: (symbol: string, currentPrice: number) => void;
     setUserBalance: (amount: number) => void;
     setWalletAddress: (address: string | null) => void;
+    fetchSettings: () => Promise<void>;
 }
 
 // Initial setup
@@ -52,9 +55,23 @@ export const useGameStore = create<GameState>((set, get) => {
         walletAddress: null,
         alphaLeaks: [],
         racingTimePassed: 0,
+        currentRake: 0.10,
+        referralFee: 0.02,
 
         setWalletAddress: (address) => set({ walletAddress: address }),
         setUserBalance: (amount) => set({ userBalance: amount }),
+
+        fetchSettings: async () => {
+            try {
+                const res = await fetch('/api/admin/settings');
+                const data = await res.json();
+                if (data.current_rake !== undefined) {
+                    set({ currentRake: data.current_rake, referralFee: data.referral_fee || 0.02 });
+                }
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        },
 
         placeBet: async (tokenId, amount, walletPublicKey) => {
             const { phase, userBalance, bets } = get();
@@ -147,9 +164,9 @@ export const useGameStore = create<GameState>((set, get) => {
                         const winnerToken = Object.values(tokens).reduce((max, t) => t.position > max.position ? t : max);
                         const winnerId = winnerToken.id;
 
-                        const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration } = get();
+                        const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration, currentRake, referralFee } = get();
                         const totalPool = bets.reduce((sum, b) => sum + b.amount, 0);
-                        const rake = totalPool * 0.10;
+                        const rake = totalPool * currentRake;
                         const netPool = totalPool - rake;
 
                         const winningBets = bets.filter(b => b.tokenId === winnerId);
@@ -169,8 +186,12 @@ export const useGameStore = create<GameState>((set, get) => {
                                 .then(res => res.json())
                                 .then(user => {
                                     const referrerWallet = user.referred_by;
-                                    const referrers = referrerWallet && payoutToUser > 0 ? [{ wallet: referrerWallet, amount: payoutToUser * 0.02 }] : [];
-                                    const houseRakeValue = referrerWallet && payoutToUser > 0 ? rake * 0.8 : rake;
+
+                                    // If user was referred, compute the fee out of the total pool volume based on referralFee
+                                    const refBonus = payoutToUser > 0 ? (totalPool * referralFee) : 0;
+
+                                    const referrers = referrerWallet && refBonus > 0 ? [{ wallet: referrerWallet, amount: refBonus }] : [];
+                                    const houseRakeValue = referrerWallet && refBonus > 0 ? (totalPool * (currentRake - referralFee)) : rake;
 
                                     const payload = {
                                         winnerships: payoutToUser > 0 ? [{ wallet: walletAddress, amount: payoutToUser }] : [],

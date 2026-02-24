@@ -2,6 +2,7 @@ import React from 'react';
 import db from '@/lib/db';
 import { Database, Users, TrendingUp, HandCoins } from 'lucide-react';
 import Link from 'next/link';
+import { SettingsManager } from '@/components/admin/SettingsManager';
 
 // Server-side database fetching
 function getAdminStats() {
@@ -98,6 +99,9 @@ export default function AdminDashboard() {
                     </div>
 
                 </div>
+
+                {/* Settings Panel */}
+                <SettingsManager />
             </main>
         </div>
     );

@@ -9,8 +9,13 @@ function SyncWorker() {
     const { publicKey, connected } = useWallet();
     const setBalance = useGameStore(state => state.setUserBalance);
     const setWalletAddress = useGameStore(state => state.setWalletAddress);
+    const fetchSettings = useGameStore(state => state.fetchSettings);
     const searchParams = useSearchParams();
     const ref = searchParams.get('ref');
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
 
     useEffect(() => {
         if (connected && publicKey) {

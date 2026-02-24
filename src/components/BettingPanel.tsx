@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { TokenId } from '../types/game';
 
 export const BettingPanel = () => {
-    const { tokens, bets, userBalance, placeBet, phase, walletAddress } = useGameStore();
+    const { tokens, bets, userBalance, placeBet, phase, walletAddress, currentRake } = useGameStore();
 
     const handleBet = (tokenId: TokenId, amount: number) => {
         if (!isNaN(amount) && amount > 0) {
@@ -12,7 +12,7 @@ export const BettingPanel = () => {
     };
 
     const totalPool = bets.reduce((sum, b) => sum + b.amount, 0);
-    const netPool = totalPool * 0.9;
+    const netPool = totalPool * (1 - currentRake);
 
     return (
         <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col gap-6">
