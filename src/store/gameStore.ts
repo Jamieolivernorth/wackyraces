@@ -14,6 +14,8 @@ interface GameState {
     history: PastRace[];
     raceId: number;
     walletAddress: string | null;
+    alphaLeaks: { token: Token, text: string }[];
+    racingTimePassed: number;
 
     // Actions
     placeBet: (tokenId: TokenId, amount: number, walletPublicKey?: string) => void;
@@ -48,6 +50,8 @@ export const useGameStore = create<GameState>((set, get) => {
         history: [],
         raceId: 1,
         walletAddress: null,
+        alphaLeaks: [],
+        racingTimePassed: 0,
 
         setWalletAddress: (address) => set({ walletAddress: address }),
         setUserBalance: (amount) => set({ userBalance: amount }),
@@ -97,25 +101,28 @@ export const useGameStore = create<GameState>((set, get) => {
         },
 
         tickTimer: () => {
-            const { phase, phaseTimeRemaining, tokens } = get();
+            const { phase, phaseTimeRemaining, tokens, racingTimePassed } = get();
 
-            if (phaseTimeRemaining > 0) {
+            if (phase === 'RACING') {
+                // In RACING, we increment time passed instead of decrementing a limit
+                set({ racingTimePassed: racingTimePassed + 1 });
+                get().updateRaceTick();
+
+                // Check if ANY token has hit 100 to trigger Photo Finish
+                const currentTokens = get().tokens;
+                const hasCrossedLine = Object.values(currentTokens).some(t => t.position >= 100);
+
+                if (hasCrossedLine) {
+                    // Enter Photo Finish for precisely 2 seconds
+                    set({ phase: 'PHOTO_FINISH', phaseTimeRemaining: 2 });
+                }
+            } else if (phaseTimeRemaining > 0) {
                 set({ phaseTimeRemaining: phaseTimeRemaining - 1 });
 
-                if (phase === 'RACING') {
-                    get().updateRaceTick();
-
-                    // Check if ANY token has hit 100 to trigger Photo Finish
-                    const currentTokens = get().tokens;
-                    const hasCrossedLine = Object.values(currentTokens).some(t => t.position >= 100);
-
-                    if (hasCrossedLine) {
-                        // Enter Photo Finish for precisely 2 seconds
-                        set({ phase: 'PHOTO_FINISH', phaseTimeRemaining: 2 });
-                    }
-                } else if (phase === 'PHOTO_FINISH') {
+                if (phase === 'PHOTO_FINISH') {
                     // Let tokens move for the last 2 camera seconds
                     get().updateRaceTick();
+                    set({ racingTimePassed: racingTimePassed + 1 });
                 }
             } else {
                 // Phase transitions
@@ -132,15 +139,15 @@ export const useGameStore = create<GameState>((set, get) => {
                             t.performance = 0;
                             t.position = 0;
                         });
-                        // We'll set phaseTimeRemaining very high, but rely on distance to finish
-                        set({ phase: 'RACING', phaseTimeRemaining: 999999, tokens: readyTokens });
+                        // Transition to RACING phase
+                        set({ phase: 'RACING', phaseTimeRemaining: 0, racingTimePassed: 0, tokens: readyTokens });
                         break;
                     case 'PHOTO_FINISH':
                         // At the exact end of Photo Finish (2s later), lock the winner
                         const winnerToken = Object.values(tokens).reduce((max, t) => t.position > max.position ? t : max);
                         const winnerId = winnerToken.id;
 
-                        const { bets, history, raceId, walletAddress } = get();
+                        const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration } = get();
                         const totalPool = bets.reduce((sum, b) => sum + b.amount, 0);
                         const rake = totalPool * 0.10;
                         const netPool = totalPool - rake;
@@ -195,8 +202,7 @@ export const useGameStore = create<GameState>((set, get) => {
                             id: `RACE-${raceId}`,
                             winner: winnerToken,
                             date: new Date(),
-                            // Estimated duration since RACING uses 999999 tracker
-                            duration: 999999 - get().phaseTimeRemaining
+                            duration: finalDuration // Uses the accurately incremented variable
                         }, ...history].slice(0, 10);
 
                         set((state) => ({
@@ -240,7 +246,8 @@ export const useGameStore = create<GameState>((set, get) => {
                 phaseTimeRemaining: PHASE_DURATIONS.BETTING,
                 tokens: nextTokens,
                 bets: [],
-                lastWinner: null
+                lastWinner: null,
+                alphaLeaks: []
             });
         }
     };

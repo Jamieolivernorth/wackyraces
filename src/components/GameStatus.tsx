@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const GameStatus = () => {
-    const { phase, phaseTimeRemaining, tickTimer } = useGameStore();
+    const { phase, phaseTimeRemaining, racingTimePassed, tickTimer } = useGameStore();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -28,6 +28,7 @@ export const GameStatus = () => {
             case 'BETTING': return 'text-green-400';
             case 'LOCKED': return 'text-yellow-400';
             case 'RACING': return 'text-red-400';
+            case 'PHOTO_FINISH': return 'text-purple-400';
             case 'FINISHED': return 'text-blue-400';
             default: return 'text-white';
         }
@@ -39,7 +40,7 @@ export const GameStatus = () => {
                 {phase} PHASE
             </h2>
             <p className="text-5xl font-mono text-white tracking-widest font-bold">
-                {formatTime(phaseTimeRemaining)}
+                {phase === 'RACING' || phase === 'PHOTO_FINISH' ? formatTime(racingTimePassed) : formatTime(phaseTimeRemaining)}
             </p>
         </div>
     );

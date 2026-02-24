@@ -8,14 +8,17 @@ export const AlphaLeakPanel = () => {
     const raceId = useGameStore(state => state.raceId);
 
     const [leaks, setLeaks] = useState<{ token: Token, text: string }[]>([]);
+    const phase = useGameStore(state => state.phase);
 
     useEffect(() => {
-        // Regenerate alpha leaks whenever the race ID changes (i.e., new token pool)
-        const activeTokens = Object.values(tokens);
-        if (activeTokens.length > 0) {
-            setLeaks(generateAlphaLeaks(activeTokens));
+        // Only regenerate when betting phase starts (to prevent endless loops on price ticks)
+        if (phase === 'BETTING') {
+            const activeTokens = Object.values(tokens);
+            if (activeTokens.length > 0) {
+                setLeaks(generateAlphaLeaks(activeTokens));
+            }
         }
-    }, [tokens, raceId]);
+    }, [phase, tokens]);
 
     return (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl flex flex-col justify-start">
