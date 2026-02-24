@@ -51,7 +51,7 @@ export const BankingPanel = () => {
     };
 
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
+        <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col gap-3">
             <h3 className="text-gray-500 font-bold uppercase text-[10px] flex justify-between items-center">
                 <span>🏦 House Ledger</span>
                 <span className="text-blue-400 font-mono text-xs">{publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}</span>

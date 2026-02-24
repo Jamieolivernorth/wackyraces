@@ -16,10 +16,10 @@ export const SchedulePanel = () => {
     const lastRace = history[0];
 
     return (
-        <div className="w-full bg-gray-900 border border-gray-800 rounded-2xl shadow-xl overflow-hidden">
-            <div className="bg-gray-800 p-4 border-b border-gray-700">
+        <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] overflow-hidden">
+            <div className="bg-white/5 p-4 border-b border-white/5">
                 <h3 className="font-bold text-gray-200">Race Schedule</h3>
-                <p className="text-xs text-gray-500 font-mono">{format(currentTime, 'HH:mm:ss')} UTC</p>
+                <p className="text-xs text-gray-400 font-mono">{format(currentTime, 'HH:mm:ss')} UTC</p>
             </div>
 
             <div className="p-4 flex flex-col gap-4">

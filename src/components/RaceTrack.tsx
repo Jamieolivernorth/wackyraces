@@ -56,12 +56,18 @@ export const RaceTrack = () => {
     const laneCount = Object.keys(tokens).length; // 6
 
     return (
-        <div className="w-full bg-gray-900 border-2 border-gray-800 rounded-2xl p-4 md:p-8 relative overflow-hidden shadow-2xl">
+        <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 md:p-8 relative overflow-hidden shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
             <div className="relative w-full" style={{ paddingBottom: '60%' /* 1000x600 equivalent */ }}>
                 <svg
                     viewBox="0 -50 1000 600"
                     className="absolute top-0 left-0 w-full h-full overflow-visible"
                 >
+                    <defs>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                    </defs>
                     {/* Track Background */}
                     <rect x="50" y="20" width="900" height="460" rx="230" fill="#1a1c23" stroke="#374151" strokeWidth="4" />
                     <rect x="250" y="220" width="500" height="60" rx="30" fill="#0f1115" stroke="#374151" strokeWidth="4" />
@@ -72,16 +78,16 @@ export const RaceTrack = () => {
                             key={`lane-${i}`}
                             d={getLanePath(i)}
                             fill="none"
-                            stroke="#2d3748"
+                            stroke="#3b82f6"
                             strokeWidth="2"
                             strokeDasharray="10 5"
-                            opacity="0.5"
+                            opacity="0.3"
                         />
                     ))}
 
                     {/* Finish / Start Line */}
-                    <line x1="300" y1="250" x2="300" y2="480" stroke="#fcd34d" strokeWidth="6" strokeDasharray="12 12" />
-                    <text x="295" y="470" fill="#fcd34d" fontSize="16" fontWeight="bold" textAnchor="end" transform="rotate(-90 295 470)">
+                    <line x1="300" y1="250" x2="300" y2="480" stroke="#fcd34d" strokeWidth="6" strokeDasharray="12 12" className="animate-pulse" />
+                    <text x="295" y="470" fill="#fcd34d" fontSize="16" fontWeight="bold" textAnchor="end" transform="rotate(-90 295 470)" className="drop-shadow-[0_0_8px_rgba(252,211,77,0.8)]">
                         START / FINISH
                     </text>
 
@@ -107,8 +113,8 @@ export const RaceTrack = () => {
                                 <div
                                     className={`w-full h-full flex flex-col items-center justify-center transform ${isWinner ? 'scale-125 animate-pulse' : ''}`}
                                 >
-                                    <div className="bg-gray-900 border-2 border-white/20 rounded-full w-10 h-10 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.2)] text-sm font-bold relative z-10"
-                                        style={{ backgroundColor: token.color, color: '#fff' }}>
+                                    <div className="bg-gray-900 rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold relative z-10"
+                                        style={{ backgroundColor: token.color, color: '#fff', filter: 'url(#glow)', boxShadow: `0 0 20px ${token.color}` }}>
                                         {token.symbol}
                                     </div>
                                     <div className="bg-black/60 text-[10px] font-mono whitespace-nowrap px-1 mt-1 rounded text-gray-300">

@@ -21,7 +21,7 @@ export const AlphaLeakPanel = () => {
     }, [phase, tokens]);
 
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl flex flex-col justify-start">
+        <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col justify-start">
             <h3 className="text-gray-500 font-bold uppercase text-[10px] mb-3 flex items-center justify-between">
                 <span>⚠️ Alpha Leaks (X / News Scans)</span>
                 <span className="animate-pulse w-2 h-2 bg-red-500 rounded-full"></span>

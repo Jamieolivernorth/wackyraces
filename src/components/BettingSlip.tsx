@@ -36,7 +36,7 @@ export const BettingSlip = () => {
 
     if (myBets.length === 0) {
         return (
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl">
+            <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)]">
                 <h3 className="text-gray-500 font-bold uppercase text-[10px] mb-3">🧾 My Betting Slip</h3>
                 <p className="text-xs text-gray-500 italic text-center py-2">No active bets placed for this race.</p>
             </div>
@@ -47,7 +47,7 @@ export const BettingSlip = () => {
 
     return (
         <div className="flex flex-col gap-3">
-            <div ref={slipRef} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-xl flex flex-col">
+            <div ref={slipRef} className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col">
                 <h3 className="text-gray-500 font-bold uppercase text-[10px] mb-3 flex justify-between items-center">
                     <span>🧾 My Betting Slip</span>
                     <span className={`text-[9px] px-1.5 py-0.5 rounded ${phase === 'BETTING' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'}`}>

@@ -35,11 +35,11 @@ export const GameStatus = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center p-4 bg-gray-900 border border-gray-800 rounded-xl shadow-2xl backdrop-blur-md bg-opacity-80">
-            <h2 className={cn("text-3xl font-black uppercase tracking-wider mb-1", getPhaseColor())}>
-                {phase} PHASE
+        <div className="flex flex-col items-center justify-center p-3 sm:px-6 bg-black/60 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] min-w-[160px]">
+            <h2 className={cn("text-xl sm:text-2xl font-black uppercase tracking-widest mb-1 drop-shadow-md", getPhaseColor())}>
+                {phase}
             </h2>
-            <p className="text-5xl font-mono text-white tracking-widest font-bold">
+            <p className="text-4xl sm:text-5xl font-mono text-white tracking-widest font-bold tabular-nums" style={{ textShadow: '0 0 20px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.4)' }}>
                 {phase === 'RACING' || phase === 'PHOTO_FINISH' ? formatTime(racingTimePassed) : formatTime(phaseTimeRemaining)}
             </p>
         </div>
