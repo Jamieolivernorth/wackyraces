@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import sql from '@/lib/db';
 
 interface PayoutPayload {
     winnerships: { wallet: string; amount: number }[];
@@ -13,24 +13,18 @@ export async function POST(request: NextRequest) {
         const body: PayoutPayload = await request.json();
         const { winnerships, referrers, houseRake, poolVolume } = body;
 
-        const transaction = db.transaction(() => {
-            // 1. Pay winners
-            const updateBalance = db.prepare('UPDATE users SET balance = balance + ? WHERE wallet_address = ?');
-            for (const win of winnerships) {
-                updateBalance.run(win.amount, win.wallet);
-            }
+        // 1. Pay winners
+        for (const win of winnerships) {
+            await sql`UPDATE users SET balance = balance + ${win.amount} WHERE wallet_address = ${win.wallet}`;
+        }
 
-            // 2. Pay referrers
-            for (const ref of referrers) {
-                updateBalance.run(ref.amount, ref.wallet);
-            }
+        // 2. Pay referrers
+        for (const ref of referrers) {
+            await sql`UPDATE users SET balance = balance + ${ref.amount} WHERE wallet_address = ${ref.wallet}`;
+        }
 
-            // 3. Update Platform Stats (Volume & Rake)
-            const updateStats = db.prepare('UPDATE platform_stats SET total_rake = total_rake + ?, total_volume = total_volume + ? WHERE id = 1');
-            updateStats.run(houseRake, poolVolume);
-        });
-
-        transaction();
+        // 3. Update Platform Stats (Volume & Rake)
+        await sql`UPDATE platform_stats SET total_rake = total_rake + ${houseRake}, total_volume = total_volume + ${poolVolume} WHERE id = 1`;
 
         return NextResponse.json({ success: true });
     } catch (err) {

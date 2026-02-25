@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db'; // Ensure alias or relative path works. We will use relative path.
+import sql from '@/lib/db';
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -11,24 +11,29 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const stmt = db.prepare('SELECT * FROM users WHERE wallet_address = ?');
-        let user: any = stmt.get(wallet);
+        let users = await sql`SELECT * FROM users WHERE wallet_address = ${wallet}`;
+        let user = users[0];
 
         if (!user) {
             // Create the user
             let referredBy = null;
             if (ref && ref !== wallet) {
                 // Check if referrer exists
-                const refUser = db.prepare('SELECT wallet_address FROM users WHERE wallet_address = ?').get(ref);
-                if (refUser) {
+                const refUsers = await sql`SELECT wallet_address FROM users WHERE wallet_address = ${ref}`;
+                if (refUsers.length > 0) {
                     referredBy = ref;
                 }
             }
 
-            const insert = db.prepare('INSERT INTO users (wallet_address, referred_by) VALUES (?, ?)');
-            insert.run(wallet, referredBy);
+            await sql`INSERT INTO users (wallet_address, referred_by) VALUES (${wallet}, ${referredBy})`;
 
-            user = db.prepare('SELECT * FROM users WHERE wallet_address = ?').get(wallet);
+            if (referredBy) {
+                // Viral Waitlist Loop: Reward the referrer with 100 free USDC for bringing a new user
+                await sql`UPDATE users SET balance = balance + 100 WHERE wallet_address = ${referredBy}`;
+            }
+
+            users = await sql`SELECT * FROM users WHERE wallet_address = ${wallet}`;
+            user = users[0];
         }
 
         return NextResponse.json(user);

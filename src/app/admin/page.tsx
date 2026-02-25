@@ -1,15 +1,20 @@
 import React from 'react';
-import db from '@/lib/db';
+import sql from '@/lib/db';
 import { Database, Users, TrendingUp, HandCoins } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsManager } from '@/components/admin/SettingsManager';
 
 // Server-side database fetching
-function getAdminStats() {
+async function getAdminStats() {
     try {
-        const stats = db.prepare('SELECT * FROM platform_stats WHERE id = 1').get() as { total_rake: number, total_volume: number };
-        const usersCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-        const referredUsers = db.prepare('SELECT COUNT(*) as count FROM users WHERE referred_by IS NOT NULL').get() as { count: number };
+        const statsArray = await sql`SELECT * FROM platform_stats WHERE id = 1`;
+        const stats = statsArray[0] as { total_rake: number, total_volume: number } | undefined;
+
+        const usersCountRes = await sql`SELECT COUNT(*) as count FROM users`;
+        const usersCount = usersCountRes[0];
+
+        const referredUsersRes = await sql`SELECT COUNT(*) as count FROM users WHERE referred_by IS NOT NULL`;
+        const referredUsers = referredUsersRes[0];
 
         return {
             rake: stats?.total_rake || 0,
@@ -23,8 +28,8 @@ function getAdminStats() {
     }
 }
 
-export default function AdminDashboard() {
-    const stats = getAdminStats();
+export default async function AdminDashboard() {
+    const stats = await getAdminStats();
 
     return (
         <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">

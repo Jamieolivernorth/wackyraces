@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import sql from '@/lib/db';
 
 export async function GET() {
     try {
-        const stats = db.prepare('SELECT current_rake, referral_fee FROM platform_stats WHERE id = 1').get() as { current_rake: number, referral_fee: number };
+        const statsArray = await sql`SELECT current_rake, referral_fee FROM platform_stats WHERE id = 1`;
+        const stats = statsArray[0] as { current_rake: number, referral_fee: number };
         return NextResponse.json(stats);
     } catch (err) {
         console.error("Settings GET Error:", err);
@@ -20,8 +21,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
         }
 
-        const update = db.prepare('UPDATE platform_stats SET current_rake = ?, referral_fee = ? WHERE id = 1');
-        update.run(current_rake, referral_fee);
+        await sql`UPDATE platform_stats SET current_rake = ${current_rake}, referral_fee = ${referral_fee} WHERE id = 1`;
 
         return NextResponse.json({ success: true, current_rake, referral_fee });
     } catch (err) {
