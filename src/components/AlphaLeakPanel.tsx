@@ -4,7 +4,6 @@ import { generateAlphaLeaks } from '../lib/alphaLeaks';
 import { Token } from '../types/game';
 
 export const AlphaLeakPanel = () => {
-    const tokens = useGameStore(state => state.tokens);
     const raceId = useGameStore(state => state.raceId);
 
     const [leaks, setLeaks] = useState<{ token: Token, text: string }[]>([]);
@@ -13,12 +12,12 @@ export const AlphaLeakPanel = () => {
     useEffect(() => {
         // Only regenerate when betting phase starts (to prevent endless loops on price ticks)
         if (phase === 'BETTING') {
-            const activeTokens = Object.values(tokens);
+            const activeTokens = Object.values(useGameStore.getState().tokens);
             if (activeTokens.length > 0) {
                 setLeaks(generateAlphaLeaks(activeTokens));
             }
         }
-    }, [phase, tokens]);
+    }, [phase, raceId]);
 
     return (
         <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col justify-start">
