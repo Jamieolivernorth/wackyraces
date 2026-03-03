@@ -1,4 +1,4 @@
-import { Token } from '../types/game';
+import { Contender } from '../types/game';
 
 const ALPHAS = [
     "Whale Alert: 50,000 {{SYMBOL}} just transferred to an unknown wallet.",
@@ -16,16 +16,16 @@ const ALPHAS = [
     "Elon Musk simply replied 'Interesting' to a thread about {{NAME}}."
 ];
 
-export const generateAlphaLeaks = (tokens: Token[]): { token: Token, text: string }[] => {
-    // Pick 3 random tokens to have alpha
-    const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
-    const selectedTokens = shuffledTokens.slice(0, 3);
+export const generateAlphaLeaks = (contenders: Contender[]): { contender: Contender, text: string }[] => {
+    // Pick 3 random contenders to have alpha
+    const shuffledContenders = [...contenders].sort(() => 0.5 - Math.random());
+    const selectedContenders = shuffledContenders.slice(0, 3);
 
-    return selectedTokens.map(token => {
+    return selectedContenders.map(contender => {
         const randomAlphaTemplate = ALPHAS[Math.floor(Math.random() * ALPHAS.length)];
         const text = randomAlphaTemplate
-            .replace('{{SYMBOL}}', token.symbol)
-            .replace('{{NAME}}', token.name);
-        return { token, text };
+            .replace('{{SYMBOL}}', contender.symbol)
+            .replace('{{NAME}}', contender.name);
+        return { contender, text };
     });
 };

@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Loader2 } from 'lucide-react';
+import { Settings, Save, Loader2, Trophy } from 'lucide-react';
+import { useGameStore } from '@/store/gameStore';
 
 export const SettingsManager = () => {
+    const { isMatchDayActive, setMatchDayActive } = useGameStore();
+
     const [rake, setRake] = useState('0.10');
     const [referral, setReferral] = useState('0.02');
     const [loading, setLoading] = useState(false);
@@ -87,6 +90,29 @@ export const SettingsManager = () => {
                         <span className="absolute right-4 top-3 text-gray-500">{(parseFloat(referral || '0') * 100).toFixed(1)}%</span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">Paid to referrers out of the House Rake allocation.</p>
+                </div>
+            </div>
+
+            <div className={`p-5 rounded-xl border mb-6 transition-colors ${isMatchDayActive ? 'bg-green-900/20 border-green-500/50' : 'bg-black/30 border-gray-800'}`}>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h4 className={`text-lg font-bold flex items-center gap-2 ${isMatchDayActive ? 'text-green-400' : 'text-gray-300'}`}>
+                            <Trophy className="w-5 h-5" />
+                            Match Day: Football Edition
+                        </h4>
+                        <p className="text-sm text-gray-500 mt-1">
+                            When enabled, the entire platform switches from Crypto Racing to Live Match Racing.
+                        </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer mt-1">
+                        <input
+                            type="checkbox"
+                            checked={isMatchDayActive}
+                            onChange={(e) => setMatchDayActive(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
                 </div>
             </div>
 

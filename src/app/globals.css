@@ -9,3 +9,50 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Neon Text Glows */
+.neon-text-pink {
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 1), 5px 5px 0px #ff00de;
+}
+
+.neon-text-blue {
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 1), 5px 5px 0px #0ea5e9;
+}
+
+.neon-text-green {
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 1), 5px 5px 0px #22c55e;
+}
+
+/* Dark Brick Wall Pattern */
+.bg-brick-wall {
+  background-color: #050505;
+  background-image:
+    linear-gradient(335deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%),
+    linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 20px, 40px 20px;
+  background-position: 0 0, 0 0, 20px 10px;
+}
+
+/* Sweeping Track Lines Animation */
+@keyframes sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.animate-sweep-fast {
+  animation: sweep 8s linear infinite;
+}
+
+.animate-sweep-slow {
+  animation: sweep 15s linear infinite;
+}
+
+.animate-sweep-medium {
+  animation: sweep 12s linear infinite;
+}

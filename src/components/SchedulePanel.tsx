@@ -6,6 +6,7 @@ export const SchedulePanel = () => {
     const history = useGameStore((state) => state.history);
     const raceId = useGameStore((state) => state.raceId);
     const phase = useGameStore((state) => state.phase);
+    const upcomingRaces = useGameStore((state) => state.upcomingRaces);
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -45,14 +46,31 @@ export const SchedulePanel = () => {
                 <div>
                     <h4 className="text-[10px] uppercase font-bold text-gray-500 mb-2">Upcoming</h4>
                     <div className="flex flex-col gap-2">
-                        {[0, 1, 2].map(offset => (
-                            <div key={offset} className={`flex justify-between items-center p-2 rounded border ${offset === 0 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-gray-800/20 border-gray-800'}`}>
-                                <span className="text-xs font-mono text-gray-300">RACE-{raceId + offset}</span>
-                                <span className="text-xs text-gray-500">
-                                    {offset === 0 ? (phase !== 'FINISHED' ? 'IN PROGRESS' : 'NEXT') : `T+${offset * 5}m`}
-                                </span>
-                            </div>
-                        ))}
+                        {[0, 1, 2].map(offset => {
+                            const raceContenders = upcomingRaces[offset];
+                            return (
+                                <div key={offset} className={`flex flex-col gap-2 p-2 rounded border ${offset === 0 ? 'bg-blue-900/20 border-blue-500/50' : 'bg-gray-800/20 border-gray-800'}`}>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-xs font-mono text-gray-300">RACE-{raceId + offset + 1}</span>
+                                        <span className="text-xs text-gray-500">
+                                            {offset === 0 ? (phase !== 'FINISHED' ? 'NEXT' : 'NEXT') : `T+${offset * 5}m`}
+                                        </span>
+                                    </div>
+                                    <div className="flex gap-1 flex-wrap">
+                                        {raceContenders && Object.values(raceContenders).map((c: any) => (
+                                            <div
+                                                key={c.id}
+                                                className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm"
+                                                style={{ backgroundColor: c.color }}
+                                                title={c.name}
+                                            >
+                                                {c.symbol}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 

@@ -11,8 +11,8 @@ import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const SolanaProviders: FC<{ children: React.ReactNode }> = ({ children }) => {
-    // We are running on Testnet/Devnet for the MVP
-    const network = WalletAdapterNetwork.Devnet;
+    // We are running on Testnet for the MVP
+    const network = WalletAdapterNetwork.Testnet;
 
     // You can also provide a custom RPC endpoint
     const endpoint = useMemo(() => clusterApiUrl(network), [network]);

@@ -17,7 +17,7 @@ export const RaceHistoryTicker = () => {
     return (
         <div className="w-full bg-yellow-400 text-black font-bold py-1 overflow-hidden relative border-y border-yellow-600 shadow-[0_0_10px_rgba(250,204,21,0.5)]">
             <div className="flex animate-marquee whitespace-nowrap min-w-full">
-                {history.map((race, i) => (
+                {history.map((race: any, i: number) => (
                     <div key={race.id + i} className="flex items-center gap-3 px-8 text-xs font-mono uppercase shrink-0">
                         <span className="text-gray-800">#{race.id}</span>
                         <span className="bg-black text-white px-2 rounded font-bold" style={{ color: race.winner.color }}>

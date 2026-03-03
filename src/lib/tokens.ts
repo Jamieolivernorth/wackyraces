@@ -38,20 +38,46 @@ export const TOP_TOKENS = [
     { id: 'gala', name: 'Gala', symbol: 'GALA', color: '#000000', startPrice: 0.06 }
 ];
 
-// Helper to get 6 random tokens
-export const getRandomTokens = () => {
+// Helper to get 6 random contenders (legacy tokens wrapper)
+export const getRandomContenders = () => {
     const shuffled = [...TOP_TOKENS].sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, 6);
 
-    const tokensObj: Record<string, any> = {};
+    const contendersObj: Record<string, any> = {};
     selected.forEach(t => {
-        tokensObj[t.id] = {
+        contendersObj[t.id] = {
             ...t,
-            currentPrice: t.startPrice,
+            startMetric: t.startPrice,
+            currentMetric: t.startPrice,
             performance: 0,
             position: 0
         };
     });
 
-    return tokensObj;
-};  
+    return contendersObj;
+};
+
+export const FOOTBALL_PLAYERS = [
+    { id: 'saliba', name: 'W. Saliba', symbol: 'SAL', color: '#EF0107' },
+    { id: 'odegaard', name: 'M. Ødegaard', symbol: 'ODE', color: '#EF0107' },
+    { id: 'saka', name: 'B. Saka', symbol: 'SAK', color: '#EF0107' },
+    { id: 'dias', name: 'R. Dias', symbol: 'DIA', color: '#6CABDD' },
+    { id: 'kdb', name: 'K. De Bruyne', symbol: 'KDB', color: '#6CABDD' },
+    { id: 'haaland', name: 'E. Haaland', symbol: 'HAA', color: '#6CABDD' }
+];
+
+// Returns exactly 6 structured players: DEF, MID, STR, DEF, MID, STR
+export const getFootballContenders = () => {
+    const contendersObj: Record<string, any> = {};
+    FOOTBALL_PLAYERS.forEach(t => {
+        contendersObj[t.id] = {
+            ...t,
+            startMetric: 0,
+            currentMetric: 0,
+            performance: 0,
+            position: 0,
+            recentEvents: []
+        };
+    });
+    return contendersObj;
+};

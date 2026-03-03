@@ -1,53 +1,103 @@
 import { create } from 'zustand';
-import { Token, TokenId, GamePhase, Bet, PHASE_DURATIONS, PastRace } from '../types/game';
-import { calculateMovement } from '../lib/mathEngine';
-import { getRandomTokens } from '../lib/tokens';
+import { Contender, ContenderId, GamePhase, Bet, GameMode, PHASE_DURATIONS, PastRace, TrackId } from '../types/game';
+import { calculateMovement, calculateFootballMovement } from '../lib/mathEngine';
+import { getRandomContenders, getFootballContenders, TOP_TOKENS } from '../lib/tokens';
 import { binanceFeed } from '../lib/binanceFeed';
+import { footballSimulator, getRoleFromIndex } from '../lib/footballEngine';
+
+export interface TrackConfig {
+    id: TrackId;
+    name: string;
+    entryFee: number;
+    minPlayers: number;
+    platformSeed: number;
+}
+
+export const TRACK_CONFIGS: Record<TrackId, TrackConfig> = {
+    casual: { id: 'casual', name: 'Casual', entryFee: 10, minPlayers: 10, platformSeed: 0 },
+    pro: { id: 'pro', name: 'Pro', entryFee: 50, minPlayers: 10, platformSeed: 0 },
+    high_roller: { id: 'high_roller', name: 'High Roller', entryFee: 100, minPlayers: 10, platformSeed: 0 },
+};
+
+// Timing configurations
+const TICK_RATE_MS = 1000;
+export interface MatchDayConfig {
+    provider: 'Mock Engine' | 'Opta' | 'StatsPerform';
+    apiKey?: string;
+    matchId?: string;
+    players: Record<string, Omit<Contender, 'id'>>;
+}
 
 interface GameState {
+    mode: GameMode;
     phase: GamePhase;
     phaseTimeRemaining: number;
-    tokens: Record<TokenId, Token>;
+    isMatchDayActive: boolean;
+    matchDayConfig: MatchDayConfig | null;
+    contenders: Record<ContenderId, Contender>;
+    upcomingRaces: Record<ContenderId, Contender>[];
     bets: Bet[];
+    stagedBets: Bet[];
     userBalance: number;
-    lastWinner: TokenId | null;
+    lastWinner: ContenderId | null;
     history: PastRace[];
     raceId: number;
     walletAddress: string | null;
-    alphaLeaks: { token: Token, text: string }[];
+    alphaLeaks: { contender: Contender, text: string }[];
     racingTimePassed: number;
     currentRake: number;
     referralFee: number;
+    selectedTrackId: TrackId | null;
+    lastPayout: number;
+}
 
-    // Actions
-    placeBet: (tokenId: TokenId, amount: number, walletPublicKey?: string) => void;
+export interface GameActions {
+    placeBet: (contenderId: ContenderId, amount: number, userId?: string) => void;
+    stageBet: (contenderId: ContenderId, amount: number) => void;
+    removeStagedBet: (index: number) => void;
+    confirmBets: () => void;
     tickTimer: () => void;
     resetRace: () => void;
-    updateRaceTick: () => void;
+    updateRaceTick: (speedMultiplier?: number) => void;
     updateLivePrice: (symbol: string, currentPrice: number) => void;
+    updateLiveTouches: (contenderId: ContenderId, newTouches: number) => void;
     setUserBalance: (amount: number) => void;
     setWalletAddress: (address: string | null) => void;
     fetchSettings: () => Promise<void>;
+    setGameMode: (mode: GameMode, targetTouches?: number) => void;
+    setSelectedTrack: (trackId: TrackId | null) => void;
+    setMatchDayActive: (isActive: boolean) => void;
+    setMatchDayConfig: (config: MatchDayConfig | null) => void;
+    startPrivateRace: (participants: any[], entryFee: number) => void;
 }
 
 // Initial setup
-const initialTokens = getRandomTokens() as Record<string, Token>;
-// Initiate first subscription
-setTimeout(() => {
-    binanceFeed.subscribe(Object.keys(initialTokens));
-}, 1000);
+const initialContenders = getRandomContenders() as Record<ContenderId, Contender>;
+const initialUpcoming = [
+    getRandomContenders() as Record<ContenderId, Contender>,
+    getRandomContenders() as Record<ContenderId, Contender>,
+    getRandomContenders() as Record<ContenderId, Contender>
+];
 
-export const useGameStore = create<GameState>((set, get) => {
-    // Setup WebSocket Callback once
+// Listen to initial set
+binanceFeed.subscribe(Object.keys(initialContenders));
+
+export const useGameStore = create<GameState & GameActions>((set, get) => {
+    // Note: binanceFeed.subscribe is handled above outside the store hook
     binanceFeed.setCallback((symbol, price) => {
         get().updateLivePrice(symbol, price);
     });
 
     return {
+        mode: 'CRYPTO',
+        isMatchDayActive: false,
+        matchDayConfig: null,
         phase: 'BETTING',
         phaseTimeRemaining: PHASE_DURATIONS.BETTING,
-        tokens: initialTokens,
+        contenders: initialContenders,
+        upcomingRaces: initialUpcoming,
         bets: [],
+        stagedBets: [],
         userBalance: 10000,
         lastWinner: null,
         history: [],
@@ -55,62 +105,158 @@ export const useGameStore = create<GameState>((set, get) => {
         walletAddress: null,
         alphaLeaks: [],
         racingTimePassed: 0,
-        currentRake: 0.10,
-        referralFee: 0.02,
+        currentRake: 0.10, // 10% default
+        referralFee: 0.05, // 5% default
+        selectedTrackId: null,
+        lastPayout: 0,
 
-        setWalletAddress: (address) => set({ walletAddress: address }),
-        setUserBalance: (amount) => set({ userBalance: amount }),
+        setSelectedTrack: (trackId: TrackId | null) => set({ selectedTrackId: trackId }),
+        setGameMode: (mode: GameMode, targetTouches?: number) => set({ mode }),
+
+        setWalletAddress: (address: string | null) => set({ walletAddress: address }),
+        setUserBalance: (amount: number) => set({ userBalance: amount }),
 
         fetchSettings: async () => {
             try {
                 const res = await fetch('/api/admin/settings');
-                const data = await res.json();
-                if (data.current_rake !== undefined) {
-                    set({ currentRake: data.current_rake, referralFee: data.referral_fee || 0.02 });
+                if (res.ok) {
+                    const data = await res.json();
+                    set({
+                        currentRake: data.current_rake,
+                        referralFee: data.referral_fee
+                    });
                 }
             } catch (e) {
                 console.error("Failed to fetch settings", e);
             }
         },
+        // Actions
+        stageBet: (contenderId: ContenderId, amount: number) => {
+            const { userBalance, stagedBets, bets, phase, selectedTrackId } = get();
+            if (phase !== 'BETTING' || !selectedTrackId) return;
 
-        placeBet: async (tokenId, amount, walletPublicKey) => {
-            const { phase, userBalance, bets } = get();
-            if (phase !== 'BETTING') return;
-            if (amount <= 0 || amount > userBalance) return;
+            const track = TRACK_CONFIGS[selectedTrackId];
+
+            // Fixed Entry Only (no variable sizing)
+            if (amount !== track.entryFee) return;
+
+            // Enforce exactly one entry per user across BOTH staged and confirmed bets FOR THIS TRACK
+            const hasDraftEntry = stagedBets.some(b => b.userId === 'me' && b.trackId === selectedTrackId);
+            const hasConfirmedEntry = bets.some(b => b.userId === 'me' && b.trackId === selectedTrackId);
+            if (hasDraftEntry || hasConfirmedEntry) return;
+
+            if (amount > userBalance) return;
+
+            set({
+                // allow multiple staged bets if they are across different tracks, 
+                // but user can only build 1 slip per track.
+                stagedBets: [...stagedBets, { contenderId, amount, userId: 'me', trackId: selectedTrackId }]
+            });
+        },
+
+        removeStagedBet: (index: number) => {
+            const { stagedBets } = get();
+            const newStaged = [...stagedBets];
+            newStaged.splice(index, 1);
+            set({ stagedBets: newStaged });
+        },
+
+        confirmBets: async () => {
+            const { stagedBets, userBalance, walletAddress, phase } = get();
+            if (phase !== 'BETTING' || stagedBets.length === 0) return;
+
+            const totalAmount = stagedBets.reduce((sum, b) => sum + b.amount, 0);
+            if (totalAmount > userBalance) return; // safety check
 
             // Optimistic UI update
-            set({
-                userBalance: userBalance - amount,
-                bets: [...bets, { userId: 'me', tokenId, amount }]
-            });
+            set((state) => ({
+                userBalance: state.userBalance - totalAmount,
+                bets: [...state.bets, ...state.stagedBets],
+                stagedBets: []
+            }));
 
-            // If connected to a real wallet, sync with backend DB ledger
-            if (walletPublicKey) {
-                try {
-                    await fetch('/api/user/bet', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ wallet: walletPublicKey, amount })
-                    });
-                } catch (e) {
-                    console.error("Failed to commit bet to backend ledger", e);
+            if (walletAddress) {
+                // Background sync all bets sequentially or in a batch if API supported it.
+                // Assuming the API only supports singular bets per endpoint for now.
+                for (const bet of stagedBets) {
+                    try {
+                        fetch('/api/user/bet', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ wallet: walletAddress, amount: bet.amount })
+                        }).catch(err => console.error("Failed to sync staged bet", err));
+                    } catch (err) {
+                        console.error("Betting error", err);
+                    }
                 }
             }
         },
 
-        updateLivePrice: (symbol, livePrice) => {
-            // Only update prices if we are in Betting or Racing. 
-            // If LOCKED, we freeze them right before Racing starts.
-            const { tokens, phase } = get();
-            if (phase === 'LOCKED' || phase === 'FINISHED') return;
+        placeBet: async (contenderId: ContenderId, amount: number, walletPublicKey?: string) => {
+            const { userBalance, phase, bets, selectedTrackId } = get();
+            if (phase !== 'BETTING' || !selectedTrackId) return;
 
-            if (tokens[symbol]) {
-                set((state) => ({
-                    tokens: {
-                        ...state.tokens,
-                        [symbol]: {
-                            ...state.tokens[symbol],
-                            currentPrice: livePrice
+            const track = TRACK_CONFIGS[selectedTrackId];
+            if (amount !== track.entryFee || amount > userBalance) return;
+
+            // Keep exactly 1 entry per track
+            if (bets.some(b => b.userId === 'me' && b.trackId === selectedTrackId)) return;
+
+            // Optimistic UI Update first
+            set({
+                userBalance: userBalance - amount,
+                bets: [...get().bets, { contenderId, amount, userId: 'me', trackId: selectedTrackId }]
+            });
+
+            if (walletPublicKey) {
+                try {
+                    // Background sync
+                    fetch('/api/user/bet', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ wallet: walletPublicKey, amount })
+                    }).catch(err => console.error("Failed to sync bet", err));
+                } catch (err) {
+                    console.error("Betting error", err);
+                }
+            }
+        },
+
+        updateLivePrice: (symbol: string, livePrice: number) => {
+            const { contenders, phase } = get();
+            if (phase !== 'BETTING' && phase !== 'RACING') return;
+
+            const contenderIdToUpdate = Object.keys(contenders).find(
+                k => contenders[k].symbol === symbol
+            );
+
+            if (contenderIdToUpdate) {
+                set((state: GameState) => ({
+                    contenders: {
+                        ...state.contenders,
+                        [contenderIdToUpdate]: {
+                            ...state.contenders[contenderIdToUpdate],
+                            currentMetric: livePrice,
+                            performance: state.phase === 'RACING'
+                                ? (livePrice - state.contenders[contenderIdToUpdate].startMetric) / state.contenders[contenderIdToUpdate].startMetric
+                                : 0
+                        }
+                    }
+                }));
+            }
+        },
+
+        updateLiveTouches: (contenderId: ContenderId, touches: number) => {
+            const { contenders, phase, mode } = get();
+            if (mode !== 'FOOTBALL' || phase === 'LOCKED' || phase === 'FINISHED' || phase === 'BETTING') return;
+
+            if (contenders[contenderId]) {
+                set((state: GameState) => ({
+                    contenders: {
+                        ...state.contenders,
+                        [contenderId]: {
+                            ...state.contenders[contenderId],
+                            currentMetric: touches
                         }
                     }
                 }));
@@ -118,86 +264,149 @@ export const useGameStore = create<GameState>((set, get) => {
         },
 
         tickTimer: () => {
-            const { phase, phaseTimeRemaining, tokens, racingTimePassed } = get();
+            const { phase, phaseTimeRemaining, contenders, racingTimePassed } = get();
 
             if (phase === 'RACING') {
-                // In RACING, we increment time passed instead of decrementing a limit
-                set({ racingTimePassed: racingTimePassed + 1 });
+                const newTimePassed = racingTimePassed + 1;
+                set({ racingTimePassed: newTimePassed });
                 get().updateRaceTick();
 
-                // Check if ANY token has hit 100 to trigger Photo Finish
-                const currentTokens = get().tokens;
-                const hasCrossedLine = Object.values(currentTokens).some(t => t.position >= 100);
+                // Football Mode Simulation (Fire new events every few seconds to build the rolling window)
+                if (get().mode === 'FOOTBALL' && newTimePassed % 3 === 0) {
+                    const currentContenders = get().contenders;
+                    const matchConfigPlayers = get().matchDayConfig?.players;
 
-                if (hasCrossedLine) {
-                    // Enter Photo Finish for precisely 2 seconds
-                    set({ phase: 'PHOTO_FINISH', phaseTimeRemaining: 2 });
+                    const newContenders = { ...currentContenders };
+                    let eventsFired = false;
+
+                    Object.keys(newContenders).forEach((key, index) => {
+                        // Prefer the admin defined role, otherwise fallback to positional index
+                        const customRole = matchConfigPlayers && matchConfigPlayers[key] ? (matchConfigPlayers[key] as any).role : undefined;
+                        const role = customRole || getRoleFromIndex(index);
+
+                        const event = footballSimulator.generateEvent(role, newTimePassed);
+                        if (event) {
+                            newContenders[key as ContenderId].recentEvents = [
+                                ...(newContenders[key as ContenderId].recentEvents || []),
+                                event
+                            ];
+                            eventsFired = true;
+                        }
+                    });
+
+                    if (eventsFired) {
+                        set({ contenders: newContenders });
+                    }
+                }
+
+                // Check if ANY token has hit 98 to trigger Photo Finish
+                const currentContenders = get().contenders;
+                const hasCrossedLine = Object.values(currentContenders).some((c: any) => c.position >= 98);
+
+                // Football mode time limit is 300s
+                const isFootballTimeUp = get().mode === 'FOOTBALL' && newTimePassed >= 300;
+
+                if (hasCrossedLine || isFootballTimeUp) {
+                    set({ phase: 'PHOTO_FINISH', phaseTimeRemaining: 5 });
                 }
             } else if (phaseTimeRemaining > 0) {
                 set({ phaseTimeRemaining: phaseTimeRemaining - 1 });
 
                 if (phase === 'PHOTO_FINISH') {
-                    // Let tokens move for the last 2 camera seconds
-                    get().updateRaceTick();
+                    get().updateRaceTick(0.4);
                     set({ racingTimePassed: racingTimePassed + 1 });
                 }
             } else {
-                // Phase transitions
                 switch (phase) {
                     case 'BETTING':
-                        set({ phase: 'LOCKED', phaseTimeRemaining: PHASE_DURATIONS.LOCKED });
+                        let refundAmount = 0;
+                        const nextBets: Bet[] = [];
+
+                        Object.values(TRACK_CONFIGS).forEach(track => {
+                            const trackBets = get().bets.filter(b => b.trackId === track.id);
+                            const uniquePlayers = new Set(trackBets.map(b => b.userId)).size;
+
+                            if (uniquePlayers > 0 && uniquePlayers < track.minPlayers) {
+                                // Refund this track
+                                trackBets.forEach(b => {
+                                    if (b.userId === 'me') refundAmount += b.amount;
+                                });
+                                console.log(`[${track.name}] Race minimum not met (${uniquePlayers}/${track.minPlayers}). Refunded pool.`);
+                            } else {
+                                // Keep these bets
+                                nextBets.push(...trackBets);
+                            }
+                        });
+
+                        set((state: GameState) => ({
+                            userBalance: state.userBalance + refundAmount,
+                            bets: nextBets,
+                            phaseTimeRemaining: PHASE_DURATIONS.LOCKED,
+                            phase: 'LOCKED'
+                        }));
                         break;
                     case 'LOCKED':
-                        // Lock starting prices based on the very latest WebSocket data
-                        const readyTokens = { ...tokens };
-                        Object.keys(readyTokens).forEach((k) => {
-                            const t = readyTokens[k as TokenId];
-                            t.startPrice = t.currentPrice;
-                            t.performance = 0;
-                            t.position = 0;
+                        const readyContenders = { ...contenders };
+                        Object.keys(readyContenders).forEach((k) => {
+                            const c = readyContenders[k];
+                            c.startMetric = c.currentMetric;
+                            c.performance = 0;
+                            c.position = 0;
                         });
-                        // Transition to RACING phase
-                        set({ phase: 'RACING', phaseTimeRemaining: 0, racingTimePassed: 0, tokens: readyTokens });
+                        set({ phase: 'RACING', phaseTimeRemaining: 0, racingTimePassed: 0, contenders: readyContenders });
                         break;
                     case 'PHOTO_FINISH':
-                        // At the exact end of Photo Finish (2s later), lock the winner
-                        const winnerToken = Object.values(tokens).reduce((max, t) => t.position > max.position ? t : max);
-                        const winnerId = winnerToken.id;
+                        const winnerContender = Object.values(contenders).reduce((max: any, c: any) => c.position > max.position ? c : max);
+                        const winnerId = winnerContender.id;
 
-                        const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration, currentRake, referralFee } = get();
-                        const totalPool = bets.reduce((sum, b) => sum + b.amount, 0);
-                        const rake = totalPool * currentRake;
-                        const netPool = totalPool - rake;
+                        const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration, currentRake, referralFee, mode } = get();
 
-                        const winningBets = bets.filter(b => b.tokenId === winnerId);
-                        const totalWinningBetsAmount = winningBets.reduce((sum, b) => sum + b.amount, 0);
+                        let totalPayoutToUser = 0;
+                        let totalPoolVolume = 0;
+                        let totalRake = 0;
 
-                        let payoutToUser = 0;
-                        if (totalWinningBetsAmount > 0) {
-                            const userWinningBets = winningBets.filter(b => b.userId === 'me');
-                            const userWinningAmount = userWinningBets.reduce((sum, b) => sum + b.amount, 0);
-                            payoutToUser = (userWinningAmount / totalWinningBetsAmount) * netPool;
-                        }
+                        Object.values(TRACK_CONFIGS).forEach(track => {
+                            const trackBets = bets.filter(b => b.trackId === track.id);
+                            if (trackBets.length === 0) return;
 
-                        // Asynchronous Backend Sync
-                        if (walletAddress && totalPool > 0) {
-                            // Fetch the user's referrer to correctly map payout
+                            const totalPlayerPool = trackBets.reduce((sum: number, b: any) => sum + b.amount, 0);
+                            const rake = totalPlayerPool * currentRake;
+                            const netPool = (totalPlayerPool - rake) + track.platformSeed;
+
+                            const winningBets = trackBets.filter((b: any) => b.contenderId === winnerId);
+                            const totalWinningBetsAmount = winningBets.reduce((sum: number, b: any) => sum + b.amount, 0);
+
+                            let payoutToUser = 0;
+                            if (totalWinningBetsAmount > 0) {
+                                const userWinningBets = winningBets.filter((b: any) => b.userId === 'me');
+                                const userWinningAmount = userWinningBets.reduce((sum: number, b: any) => sum + b.amount, 0);
+                                payoutToUser = (userWinningAmount / totalWinningBetsAmount) * netPool;
+                            } else {
+                                // Case 0 winners. Refund everyone their original entry, seed carried over.
+                                console.log(`[${track.name}] No winners. Refunding entries.`);
+                                const myLostBet = trackBets.find(b => b.userId === 'me');
+                                if (myLostBet) payoutToUser = myLostBet.amount;
+                            }
+
+                            totalPayoutToUser += payoutToUser;
+                            totalPoolVolume += totalPlayerPool;
+                            totalRake += rake;
+                        });
+
+                        if (walletAddress && totalPoolVolume > 0) {
                             fetch(`/api/user?wallet=${walletAddress}`)
                                 .then(res => res.json())
                                 .then(user => {
                                     const referrerWallet = user.referred_by;
-
-                                    // If user was referred, compute the fee out of the total pool volume based on referralFee
-                                    const refBonus = payoutToUser > 0 ? (totalPool * referralFee) : 0;
-
+                                    const refBonus = totalPayoutToUser > 0 ? (totalPoolVolume * referralFee) : 0;
                                     const referrers = referrerWallet && refBonus > 0 ? [{ wallet: referrerWallet, amount: refBonus }] : [];
-                                    const houseRakeValue = referrerWallet && refBonus > 0 ? (totalPool * (currentRake - referralFee)) : rake;
+                                    const houseRakeValue = referrerWallet && refBonus > 0 ? (totalPoolVolume * (currentRake - referralFee)) : totalRake;
 
                                     const payload = {
-                                        winnerships: payoutToUser > 0 ? [{ wallet: walletAddress, amount: payoutToUser }] : [],
+                                        winnerships: totalPayoutToUser > 0 ? [{ wallet: walletAddress, amount: totalPayoutToUser }] : [],
                                         referrers,
                                         houseRake: houseRakeValue,
-                                        poolVolume: totalPool
+                                        poolVolume: totalPoolVolume
                                     };
 
                                     return fetch('/api/race/payout', {
@@ -206,10 +415,7 @@ export const useGameStore = create<GameState>((set, get) => {
                                         body: JSON.stringify(payload)
                                     });
                                 })
-                                .then(() => {
-                                    // Refresh balance
-                                    return fetch(`/api/user?wallet=${walletAddress}`);
-                                })
+                                .then(() => fetch(`/api/user?wallet=${walletAddress}`))
                                 .then(res => res.json())
                                 .then(data => {
                                     if (data?.balance !== undefined) {
@@ -221,16 +427,18 @@ export const useGameStore = create<GameState>((set, get) => {
 
                         const nextHistory = [{
                             id: `RACE-${raceId}`,
-                            winner: winnerToken,
+                            mode: mode,
+                            winner: winnerContender,
                             date: new Date(),
-                            duration: finalDuration // Uses the accurately incremented variable
+                            duration: finalDuration
                         }, ...history].slice(0, 10);
 
-                        set((state) => ({
+                        set((state: any) => ({
                             phase: 'FINISHED',
                             phaseTimeRemaining: PHASE_DURATIONS.FINISHED,
                             lastWinner: winnerId,
-                            userBalance: walletAddress ? state.userBalance : state.userBalance + payoutToUser, // If unwallet, optimistic
+                            lastPayout: totalPayoutToUser,
+                            userBalance: walletAddress ? state.userBalance : state.userBalance + totalPayoutToUser,
                             history: nextHistory,
                             raceId: state.raceId + 1
                         }));
@@ -242,32 +450,110 @@ export const useGameStore = create<GameState>((set, get) => {
             }
         },
 
-        updateRaceTick: () => {
-            const { tokens } = get();
-            // Recalculate performance based on the live currentPrices
-            const activeTokens = { ...tokens };
-            Object.keys(activeTokens).forEach((key) => {
-                const t = activeTokens[key];
-                t.performance = t.startPrice > 0 ? (t.currentPrice - t.startPrice) / t.startPrice : 0;
-            });
+        updateRaceTick: (speedMultiplier: number = 1) => {
+            const { contenders, mode } = get();
+            const activeContenders = { ...contenders };
 
-            // Apply Math Engine (which normalizes the performance array and moves them)
-            const movedTokens = calculateMovement(activeTokens);
-            set({ tokens: movedTokens });
+            if (mode === 'CRYPTO') {
+                Object.keys(activeContenders).forEach((key) => {
+                    const c = activeContenders[key];
+                    c.performance = c.startMetric > 0 ? (c.currentMetric - c.startMetric) / c.startMetric : 0;
+                });
+                const movedContenders = calculateMovement(activeContenders, speedMultiplier);
+                set({ contenders: movedContenders });
+            } else if (mode === 'FOOTBALL') {
+                const movedContenders = calculateFootballMovement(activeContenders, get().racingTimePassed);
+                set({ contenders: movedContenders });
+            }
+        },
+
+        setMatchDayActive: (isActive: boolean) => {
+            const newMode = isActive ? 'FOOTBALL' : 'CRYPTO';
+            set({ isMatchDayActive: isActive, mode: newMode });
+            get().resetRace(); // Immediately flip the app over
+        },
+
+        setMatchDayConfig: (config: MatchDayConfig | null) => {
+            set({ matchDayConfig: config });
         },
 
         resetRace: () => {
-            const nextTokens = getRandomTokens() as Record<string, Token>;
+            const { upcomingRaces, mode, isMatchDayActive, matchDayConfig } = get();
+
+            let nextContenders: Record<ContenderId, Contender>;
+
+            if (isMatchDayActive && matchDayConfig && matchDayConfig.players) {
+                // Convert Admin Dictionary to live Contenders
+                nextContenders = {} as Record<ContenderId, Contender>;
+                Object.entries(matchDayConfig.players).forEach(([id, playerProps]) => {
+                    nextContenders[id as ContenderId] = {
+                        id: id as ContenderId,
+                        ...playerProps,
+                        recentEvents: []
+                    };
+                });
+            } else {
+                nextContenders = upcomingRaces[0];
+            }
+
+            const nextUpcoming = [
+                upcomingRaces[1],
+                upcomingRaces[2],
+                mode === 'FOOTBALL' ? getFootballContenders() as Record<ContenderId, Contender> : getRandomContenders() as Record<ContenderId, Contender>
+            ];
 
             // Connect WS to the new tokens
-            binanceFeed.subscribe(Object.keys(nextTokens));
+            if (mode === 'CRYPTO') {
+                binanceFeed.subscribe(Object.keys(nextContenders));
+            }
 
             set({
+                mode: mode,
                 phase: 'BETTING',
                 phaseTimeRemaining: PHASE_DURATIONS.BETTING,
-                tokens: nextTokens,
+                contenders: nextContenders,
+                upcomingRaces: nextUpcoming,
                 bets: [],
+                stagedBets: [],
                 lastWinner: null,
+                lastPayout: 0,
+                alphaLeaks: []
+            });
+        },
+
+        startPrivateRace: (participants: any[], entryFee: number) => {
+            const nextContenders: Record<string, any> = {};
+            participants.forEach((p) => {
+                const tokenDef = TOP_TOKENS.find(t => t.id === p.selected_token);
+                if (tokenDef) {
+                    nextContenders[p.selected_token] = {
+                        ...tokenDef,
+                        startMetric: tokenDef.startPrice,
+                        currentMetric: tokenDef.startPrice,
+                        performance: 0,
+                        position: 0
+                    };
+                }
+            });
+
+            // Connect WS to the new tokens
+            binanceFeed.subscribe(Object.keys(nextContenders));
+
+            set({
+                mode: 'CRYPTO',
+                phase: 'RACING',
+                phaseTimeRemaining: 0,
+                racingTimePassed: 0,
+                contenders: nextContenders as Record<ContenderId, Contender>,
+                bets: participants.map(p => ({
+                    contenderId: p.selected_token,
+                    amount: entryFee,
+                    userId: p.wallet_address === get().walletAddress ? 'me' : p.wallet_address,
+                    trackId: 'casual' // fallback, used to group payouts
+                })),
+                stagedBets: [],
+                lastWinner: null,
+                lastPayout: 0,
                 alphaLeaks: []
             });
         }

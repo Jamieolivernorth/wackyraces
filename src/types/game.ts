@@ -1,20 +1,39 @@
-export type TokenId = string;
+export type ContenderId = string;
+export type TrackId = 'casual' | 'pro' | 'high_roller';
 
-export interface Token {
-  id: TokenId;
+export type GameMode = 'CRYPTO' | 'FOOTBALL';
+
+export type FootballEventType = 'Touch' | 'Pass' | 'ForwardPass' | 'KeyPass' | 'Shot' | 'ShotOnTarget' | 'Assist' | 'Goal' | 'Dispossessed' | 'YellowCard' | 'RedCard';
+
+export interface FootballEvent {
+  id: string;
+  type: FootballEventType;
+  points: number;
+  timestamp: number; // relative to racingTimePassed
+}
+
+// Generalized participant in the race
+export interface Contender {
+  id: ContenderId;
   name: string;
-  symbol: string;
+  symbol: string;      // e.g., 'BTC' or 'MCI' (Man City)
   color: string;
   imageUrl?: string;
-  startPrice: number;
-  currentPrice: number;
-  performance: number; // Percentage change
-  position: number;   // 0 to 100 representing percentage around the track
+
+  // Generic Metrics
+  startMetric: number;   // e.g., Start Price (65000) or Start Touches (0)
+  currentMetric: number; // e.g., Current Price (66000) or Current Touches (15)
+  targetMetric?: number; // Needed for Football (e.g. 35 Touches to win)
+
+  performance: number;   // Percentage change for Crypto
+  position: number;      // 0 to 100 representing percentage around the track
+  recentEvents?: FootballEvent[]; // Football rolling 30s window events
 }
 
 export interface PastRace {
   id: string;
-  winner: Token;
+  mode: GameMode;
+  winner: Contender;
   date: Date;
   duration: number;
 }
@@ -35,6 +54,7 @@ export const PHASE_DURATIONS = {
 
 export interface Bet {
   userId: string;
-  tokenId: TokenId;
+  contenderId: ContenderId;
   amount: number;
+  trackId: TrackId;
 }
