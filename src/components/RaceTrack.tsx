@@ -76,7 +76,7 @@ export const RaceTrack = () => {
     const laneCount = Object.keys(contenders).length; // 6
 
     return (
-        <div className={`w-full bg-black/40 backdrop-blur-xl border rounded-3xl p-4 md:p-8 relative overflow-hidden shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] transition-all ${isFinal30s ? 'border-red-500/80 shadow-[0_0_50px_rgba(239,68,68,0.3)] animate-[pulse_1s_ease-in-out_infinite]' : 'border-white/10'}`}>
+        <div className={`w-full bg-black/40 backdrop-blur-xl border rounded-3xl p-4 md:p-8 relative shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] transition-all ${isFinal30s ? 'border-red-500/80 shadow-[0_0_50px_rgba(239,68,68,0.3)] animate-[pulse_1s_ease-in-out_infinite]' : 'border-white/10'}`}>
             {isFinal30s && (
                 <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-red-600/20 border border-red-500 text-red-500 text-xs font-black uppercase tracking-widest px-4 py-1 rounded-full animate-bounce z-50">
                     FINAL 30 SECONDS (3x MULTIPLIER)

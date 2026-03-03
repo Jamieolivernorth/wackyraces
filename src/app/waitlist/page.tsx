@@ -41,9 +41,8 @@ export default function WaitlistPage() {
             {/* Nav */}
             <header className="absolute top-0 w-full p-6 flex justify-between items-center z-50 border-b border-white/5 bg-black/50 backdrop-blur-md">
                 <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-black italic tracking-tighter text-white">
-                        WACKY RACES <span className="text-blue-500 text-xs font-mono font-bold tracking-widest ml-1 opacity-70">BETA</span>
-                    </h1>
+                    <img src="/logo-white.png" alt="Wacky Races Logo" className="h-6 md:h-8 w-auto" />
+                    <span className="text-blue-500 text-xs font-mono font-bold tracking-widest ml-1 opacity-70">BETA</span>
                 </div>
                 {connected && (
                     <Link href="/" className="text-xs font-mono font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-1 uppercase">
@@ -216,8 +215,8 @@ export default function WaitlistPage() {
             {/* Footer */}
             <footer className="border-t border-gray-900 bg-black/50 py-8 lg:py-12 mt-auto w-full relative z-10">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between opacity-50 text-xs">
-                    <div className="flex font-black italic tracking-widest gap-2">
-                        <span className="text-pink-500">WACKY</span><span className="text-blue-500">RACES</span>
+                    <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+                        <img src="/logo-white.png" alt="Wacky Races Logo" className="h-6 w-auto" />
                     </div>
                     <div className="mt-4 md:mt-0">© {new Date().getFullYear()} All Rights Reserved. Not financial advice.</div>
                 </div>

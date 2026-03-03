@@ -44,10 +44,8 @@ export default function Home() {
           <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 relative">
 
             <div className="flex flex-col flex-1 pl-4 md:pl-0">
-              <div className="bg-brick-wall py-4 px-6 rounded-2xl border border-gray-900 shadow-2xl inline-block -rotate-2 transform hover:rotate-0 transition-transform duration-500">
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-500 to-blue-400 neon-text-pink drop-shadow-2xl">
-                  WACKY RACES
-                </h1>
+              <div className="inline-block transform hover:scale-105 transition-transform duration-500">
+                <img src="/logo-white.png" alt="Wacky Races Logo" className="w-[200px] md:w-[280px] lg:w-[360px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
               </div>
               <p className="text-gray-400 font-bold tracking-widest text-sm md:text-base uppercase mt-3 ml-2 neon-text-blue opacity-80">
                 Welcome to the Underground Web3 Derbies
@@ -100,8 +98,8 @@ export default function Home() {
           {/* Footer */}
           <footer className="border-t border-gray-900 bg-black/50 py-8 lg:py-12 mt-auto">
             <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between opacity-50 text-xs">
-              <div className="flex font-black italic tracking-widest gap-2">
-                <span className="text-pink-500">WACKY</span><span className="text-blue-500">RACES</span>
+              <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+                <img src="/logo-white.png" alt="Wacky Races Logo" className="h-6 w-auto" />
               </div>
               <div className="mt-4 md:mt-0">© {new Date().getFullYear()} All Rights Reserved. Not financial advice.</div>
             </div>

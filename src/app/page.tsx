@@ -30,10 +30,8 @@ export default function Home() {
 
       <div className="relative z-10 flex flex-col flex-1 mt-12">
         <header className="max-w-4xl mx-auto flex flex-col items-center justify-center text-center gap-6 relative px-4">
-          <div className="bg-brick-wall py-6 px-12 rounded-3xl border-2 border-gray-900 shadow-2xl inline-block -rotate-2 transform hover:rotate-0 transition-transform duration-500">
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-500 to-blue-400 neon-text-pink drop-shadow-2xl">
-              WACKY RACES
-            </h1>
+          <div className="inline-block -rotate-2 transform hover:rotate-0 transition-transform duration-500 drop-shadow-2xl">
+            <img src="/logo-white.png" alt="Wacky Races Logo" className="w-[280px] md:w-[400px] lg:w-[500px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
           </div>
           <p className="text-gray-300 font-bold tracking-widest text-lg md:text-2xl uppercase mt-4 neon-text-blue opacity-90 max-w-2xl">
             Welcome to the Underground Web3 Derbies.
@@ -135,8 +133,8 @@ export default function Home() {
         {/* Footer */}
         <footer className="border-t border-gray-900 bg-black/50 py-8 lg:py-12 mt-auto">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between opacity-50 text-xs">
-            <div className="flex font-black italic tracking-widest gap-2">
-              <span className="text-pink-500">WACKY</span><span className="text-blue-500">RACES</span>
+            <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+              <img src="/logo-white.png" alt="Wacky Races Logo" className="h-8 w-auto" />
             </div>
             <div className="mt-4 md:mt-0">© {new Date().getFullYear()} All Rights Reserved. Not financial advice.</div>
           </div>

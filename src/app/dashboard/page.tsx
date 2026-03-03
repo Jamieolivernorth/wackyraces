@@ -71,8 +71,7 @@ export default function DashboardPage() {
             <header className="w-full p-4 border-b border-white/10 bg-black/50 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center">
                 <div className="flex items-center gap-6">
                     <Link href="/dashboard" className="flex items-center gap-2">
-                        <div className="bg-blue-600 w-8 h-8 rounded-lg flex items-center justify-center font-black italic">W</div>
-                        <span className="font-black italic tracking-tight hidden sm:block">WACKY RACES</span>
+                        <img src="/logo-white.png" alt="Wacky Races Logo" className="h-6 sm:h-8 w-auto mix-blend-screen opacity-90 hover:opacity-100 transition-opacity" />
                     </Link>
                     <div className="h-4 w-[1px] bg-gray-800 hidden sm:block" />
                     <nav className="hidden sm:flex gap-4 text-sm font-bold text-gray-400">
