@@ -52,10 +52,10 @@ interface GameState {
 }
 
 export interface GameActions {
-    placeBet: (contenderId: ContenderId, amount: number, userId?: string) => void;
+    placeBet: (contenderId: ContenderId, amount: number, userId?: string, token?: string) => void;
     stageBet: (contenderId: ContenderId, amount: number) => void;
     removeStagedBet: (index: number) => void;
-    confirmBets: () => void;
+    confirmBets: (token?: string) => void;
     tickTimer: () => void;
     resetRace: () => void;
     updateRaceTick: (speedMultiplier?: number) => void;
@@ -161,7 +161,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
             set({ stagedBets: newStaged });
         },
 
-        confirmBets: async () => {
+        confirmBets: async (token?: string) => {
             const { stagedBets, userBalance, walletAddress, phase } = get();
             if (phase !== 'BETTING' || stagedBets.length === 0) return;
 
@@ -182,7 +182,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                     try {
                         fetch('/api/user/bet', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
                             body: JSON.stringify({ wallet: walletAddress, amount: bet.amount })
                         }).catch(err => console.error("Failed to sync staged bet", err));
                     } catch (err) {
@@ -192,7 +195,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
             }
         },
 
-        placeBet: async (contenderId: ContenderId, amount: number, walletPublicKey?: string) => {
+        placeBet: async (contenderId: ContenderId, amount: number, walletPublicKey?: string, token?: string) => {
             const { userBalance, phase, bets, selectedTrackId } = get();
             if (phase !== 'BETTING' || !selectedTrackId) return;
 
@@ -213,7 +216,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                     // Background sync
                     fetch('/api/user/bet', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                        },
                         body: JSON.stringify({ wallet: walletPublicKey, amount })
                     }).catch(err => console.error("Failed to sync bet", err));
                 } catch (err) {

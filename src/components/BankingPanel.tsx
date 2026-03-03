@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useGameStore } from '../store/gameStore';
 import { Loader2 } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 
 export const BankingPanel = () => {
     const { publicKey } = useWallet();
+    const { getAccessToken } = usePrivy();
     const { userBalance, setUserBalance, phase } = useGameStore();
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState<'deposit' | 'withdraw' | null>(null);
@@ -29,9 +31,14 @@ export const BankingPanel = () => {
             // Simulate wallet approval delay
             await new Promise(resolve => setTimeout(resolve, 1500));
 
+            const token = await getAccessToken();
+
             const res = await fetch(`/api/user/${type}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({ wallet, amount: val })
             });
 

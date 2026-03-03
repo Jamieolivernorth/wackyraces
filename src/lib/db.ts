@@ -19,11 +19,17 @@ async function initDb() {
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         wallet_address TEXT PRIMARY KEY,
+        privy_id TEXT UNIQUE,
         balance FLOAT DEFAULT 1000,
         referred_by TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    // Try adding the column if table already exists in dev
+    try {
+      await sql`ALTER TABLE users ADD COLUMN privy_id TEXT UNIQUE`;
+    } catch (e) { /* Column likely exists */ }
 
     // Create Platform Stats table
     await sql`

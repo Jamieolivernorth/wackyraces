@@ -2,9 +2,11 @@ import React, { useCallback, useRef } from 'react';
 import { useGameStore, TRACK_CONFIGS } from '../store/gameStore';
 import * as htmlToImage from 'html-to-image';
 import { Twitter, Trash2 } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 
 export const BettingSlip = () => {
     const { bets, stagedBets, contenders, phase, walletAddress, removeStagedBet, confirmBets, currentRake } = useGameStore();
+    const { getAccessToken } = usePrivy();
     const slipRef = useRef<HTMLDivElement>(null);
 
     const myBets = bets.filter((b: any) => b.userId === 'me');
@@ -156,7 +158,14 @@ export const BettingSlip = () => {
             {/* Global Actions */}
             {stagedBets.length > 0 && (
                 <button
-                    onClick={confirmBets}
+                    onClick={async () => {
+                        try {
+                            const token = await getAccessToken();
+                            confirmBets(token || undefined);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    }}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)]"
                 >
                     Confirm All Bets (${unconfirmedTotal})
