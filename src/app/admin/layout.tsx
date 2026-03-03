@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         // Uses simple secret for backoffice operations
-        if (password === 'wackyadmin2024') {
+        if (password === 'ManchesterUnited5-0Liverpool') {
             sessionStorage.setItem('admin_authenticated', 'true');
             setIsAuthenticated(true);
             setError('');
