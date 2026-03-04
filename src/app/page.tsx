@@ -31,7 +31,7 @@ export default function Home() {
       <div className="relative z-10 flex flex-col flex-1 mt-12">
         <header className="max-w-4xl mx-auto flex flex-col items-center justify-center text-center gap-6 relative px-4">
           <div className="inline-block -rotate-2 transform hover:rotate-0 transition-transform duration-500 drop-shadow-2xl">
-            <img src="/logo-white.png" alt="Wacky Races Logo" className="w-[280px] md:w-[400px] lg:w-[500px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+            <img src="/logo-3d.png" alt="Wacky Races Logo 3D" className="w-[280px] md:w-[400px] lg:w-[500px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
           </div>
           <p className="text-gray-300 font-bold tracking-widest text-lg md:text-2xl uppercase mt-4 neon-text-blue opacity-90 max-w-2xl">
             Welcome to the Underground Web3 Derbies.

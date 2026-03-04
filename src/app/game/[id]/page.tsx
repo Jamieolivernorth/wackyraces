@@ -45,7 +45,7 @@ export default function Home() {
 
             <div className="flex flex-col flex-1 pl-4 md:pl-0">
               <div className="inline-block transform hover:scale-105 transition-transform duration-500">
-                <img src="/logo-white.png" alt="Wacky Races Logo" className="w-[200px] md:w-[280px] lg:w-[360px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+                <img src="/logo-3d.png" alt="Wacky Races Logo 3D" className="w-[200px] md:w-[280px] lg:w-[360px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
               </div>
               <p className="text-gray-400 font-bold tracking-widest text-sm md:text-base uppercase mt-3 ml-2 neon-text-blue opacity-80">
                 Welcome to the Underground Web3 Derbies
