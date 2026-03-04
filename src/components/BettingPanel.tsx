@@ -33,7 +33,7 @@ export const BettingPanel = () => {
     const uniquePlayers = new Set([...trackBets.map((b: any) => b.userId), ...trackStagedBets.map((b: any) => b.userId)]).size;
 
     return (
-        <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col gap-6">
+        <div className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col gap-4 sm:gap-6">
 
             <div className="flex justify-between items-center -mb-2">
                 <button
@@ -88,7 +88,7 @@ export const BettingPanel = () => {
                     const myContenderBets = contenderBets.filter((b: any) => b.userId === 'me').reduce((sum: number, b: any) => sum + b.amount, 0);
 
                     return (
-                        <div key={contender.id} className="bg-white/5 rounded-xl p-4 border border-white/10 flex flex-col gap-3 transition-all duration-300 hover:scale-[1.02] hover:border-blue-500/50 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                        <div key={contender.id} className="bg-white/5 rounded-xl p-3 sm:p-4 border border-white/10 flex flex-col gap-2 sm:gap-3 transition-all duration-300 hover:scale-[1.02] hover:border-blue-500/50 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2">
                                     <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white shadow-[0_0_10px_rgba(255,255,255,0.3)]" style={{ backgroundColor: contender.color }}>

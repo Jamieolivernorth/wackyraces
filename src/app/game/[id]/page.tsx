@@ -18,49 +18,49 @@ export default function Home() {
   const { isMuted, toggleMute } = useAudioEngine();
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-pink-500/30 font-sans relative flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-black text-white selection:bg-pink-500/30 font-sans relative flex flex-col overflow-x-hidden">
       {/* Background Blended Layers */}
       <div
-        className="absolute inset-0 z-0 opacity-15 mix-blend-screen pointer-events-none bg-[url('/hero-track.jpg')] bg-cover bg-center"
+        className="absolute inset-x-0 top-0 h-[100vh] z-0 opacity-15 mix-blend-screen pointer-events-none bg-[url('/hero-track.jpg')] bg-cover bg-top"
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/80 via-black/40 to-black pointer-events-none" />
 
       {/* Vertical Track Lines Accent */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none flex justify-center gap-32 overflow-hidden mix-blend-overlay">
-        <div className="w-[2px] h-[200vh] bg-green-500 animate-sweep-fast" />
-        <div className="w-[2px] h-[200vh] bg-blue-500 animate-sweep-slow" />
-        <div className="w-[2px] h-[200vh] bg-pink-500 animate-sweep-medium" />
+      <div className="fixed inset-0 z-0 opacity-20 pointer-events-none flex justify-center gap-16 md:gap-32 overflow-hidden mix-blend-overlay">
+        <div className="w-[1px] md:w-[2px] h-[200vh] bg-green-500 animate-sweep-fast" />
+        <div className="w-[1px] md:w-[2px] h-[200vh] bg-blue-500 animate-sweep-slow" />
+        <div className="w-[1px] md:w-[2px] h-[200vh] bg-pink-500 animate-sweep-medium" />
       </div>
 
-      <div className="relative z-10 flex flex-col flex-1">
+      <div className="relative z-10 flex flex-col flex-1 w-full max-w-[100vw]">
         <WalletSync />
         {/* Top Banner Ticker */}
         <RaceHistoryTicker />
 
         {/* Main Content Area */}
-        <div className="flex-1 p-4 md:p-6 lg:p-8">
+        <div className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 w-full">
 
           {/* Header section */}
-          <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8 gap-6 relative">
+          <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-6 relative w-full">
 
-            <div className="flex flex-col flex-1 pl-4 md:pl-0">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left flex-1 w-full">
               <div className="inline-block transform hover:scale-105 transition-transform duration-500">
-                <img src="/logo-3d.png" alt="Wacky Races Logo 3D" className="w-[200px] md:w-[280px] lg:w-[360px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+                <img src="/logo-3d.png" alt="Wacky Races Logo 3D" className="w-[220px] sm:w-[280px] lg:w-[360px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
               </div>
-              <p className="text-gray-400 font-bold tracking-widest text-sm md:text-base uppercase mt-3 ml-2 neon-text-blue opacity-80">
+              <p className="text-gray-400 font-bold tracking-widest text-[10px] sm:text-xs md:text-sm uppercase mt-2 md:mt-3 md:ml-2 neon-text-blue opacity-80">
                 Welcome to the Underground Web3 Derbies
               </p>
             </div>
 
-            <div className="shrink-0 flex items-center gap-4">
+            <div className="shrink-0 flex items-center justify-center flex-wrap gap-2 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
               <button
                 onClick={toggleMute}
-                className="w-12 h-12 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer z-50 text-gray-300 hover:text-white group"
+                className="w-10 h-10 md:w-12 md:h-12 bg-gray-900 border border-gray-700 rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer z-50 text-gray-300 hover:text-white group"
                 title={isMuted ? "Unmute Sound Effects" : "Mute Sound Effects"}
               >
-                {isMuted ? <VolumeX className="w-6 h-6 group-hover:scale-110 transition-transform" /> : <Volume2 className="w-6 h-6 group-hover:scale-110 transition-transform text-green-400" />}
+                {isMuted ? <VolumeX className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform text-green-400" />}
               </button>
-              <WalletMultiButton className="!bg-blue-600 hover:!bg-blue-500 transition-colors !rounded-full !h-12 !px-6 !font-bold" />
+              <WalletMultiButton className="!bg-blue-600 hover:!bg-blue-500 transition-colors !rounded-full !h-10 md:!h-12 !px-4 md:!px-6 !text-sm md:!text-base !font-bold" />
               <GameStatus />
             </div>
           </header>
