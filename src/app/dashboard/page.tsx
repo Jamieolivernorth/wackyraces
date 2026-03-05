@@ -44,13 +44,17 @@ export default function DashboardPage() {
     }, []);
 
     // Redirect if not authenticated (basic protection)
+    // BYPASS: If the user is hitting the /demo backdoor URL, bypass this auth check.
     useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.pathname === '/demo') {
+            return;
+        }
         if (ready && !authenticated) {
             router.push('/');
         }
     }, [ready, authenticated, router]);
 
-    if (!isClient || !ready || !authenticated) {
+    if (!isClient || !ready || (!authenticated && typeof window !== 'undefined' && window.location.pathname !== '/demo')) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
