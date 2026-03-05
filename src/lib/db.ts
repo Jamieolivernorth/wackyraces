@@ -80,6 +80,18 @@ async function initDb() {
       )
     `;
 
+    // Create Waitlist Lead Capture table
+    await sql`
+      CREATE TABLE IF NOT EXISTS waitlist_users (
+        id SERIAL PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        twitter_handle TEXT,
+        instagram_handle TEXT,
+        wallet_address TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     console.log("PostgreSQL schema initialized successfully.");
   } catch (error) {
     console.error("Error initializing PostgreSQL schema:", error);
