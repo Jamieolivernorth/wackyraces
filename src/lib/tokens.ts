@@ -57,6 +57,57 @@ export const getRandomContenders = () => {
     return contendersObj;
 };
 
+export const MEME_TOKENS = [
+    { id: 'doge', name: 'Dogecoin', symbol: 'DOGE', color: '#C2A633', startPrice: 0.15 },
+    { id: 'shib', name: 'Shiba Inu', symbol: 'SHIB', color: '#FFA409', startPrice: 0.00002 },
+    { id: 'pepe', name: 'Pepe', symbol: 'PEPE', color: '#4CAF50', startPrice: 0.000007 },
+    { id: 'wif', name: 'dogwifhat', symbol: 'WIF', color: '#B39169', startPrice: 3.50 },
+    { id: 'bonk', name: 'Bonk', symbol: 'BONK', color: '#F2A900', startPrice: 0.000025 },
+    { id: 'floki', name: 'FLOKI', symbol: 'FLOKI', color: '#C8A2C8', startPrice: 0.0002 },
+    { id: 'brett', name: 'Brett', symbol: 'BRETT', color: '#1E90FF', startPrice: 0.12 },
+    { id: 'popcat', name: 'Popcat', symbol: 'POPCAT', color: '#FFB6C1', startPrice: 0.85 },
+    { id: 'bome', name: 'BOME', symbol: 'BOME', color: '#FFD700', startPrice: 0.015 },
+    { id: 'mew', name: 'MEW', symbol: 'MEW', color: '#D3D3D3', startPrice: 0.005 },
+    { id: 'turbo', name: 'Turbo', symbol: 'TURBO', color: '#FFDF00', startPrice: 0.006 },
+    { id: 'meme', name: 'Memecoin', symbol: 'MEME', color: '#FFFF00', startPrice: 0.02 },
+    { id: 'mog', name: 'Mog Coin', symbol: 'MOG', color: '#FF4500', startPrice: 0.000001 },
+    { id: 'slerf', name: 'SLERF', symbol: 'SLERF', color: '#A0522D', startPrice: 0.40 },
+    { id: 'boden', name: 'BODEN', symbol: 'BODEN', color: '#000080', startPrice: 0.20 },
+    { id: 'wen', name: 'Wen', symbol: 'WEN', color: '#FFFFFF', startPrice: 0.00015 },
+    { id: 'myro', name: 'Myro', symbol: 'MYRO', color: '#000000', startPrice: 0.18 },
+    { id: 'coq', name: 'Coq Inu', symbol: 'COQ', color: '#DC143C', startPrice: 0.000002 },
+    { id: 'ladys', name: 'Milady', symbol: 'LADYS', color: '#FF1493', startPrice: 0.0000001 },
+    { id: 'toshi', name: 'Toshi', symbol: 'TOSHI', color: '#00BFFF', startPrice: 0.0004 },
+    { id: 'trump', name: 'MAGA', symbol: 'TRUMP', color: '#B22222', startPrice: 8.00 },
+    { id: 'snek', name: 'Snek', symbol: 'SNEK', color: '#228B22', startPrice: 0.001 },
+    { id: 'elon', name: 'Dogelon', symbol: 'ELON', color: '#FF8C00', startPrice: 0.0000002 },
+    { id: 'bttc', name: 'BitTorrent', symbol: 'BTTC', color: '#4B0082', startPrice: 0.000001 },
+    { id: 'pork', name: 'PepeFork', symbol: 'PORK', color: '#FF69B4', startPrice: 0.0000005 },
+    { id: 'foxy', name: 'Foxy', symbol: 'FOXY', color: '#FF7F50', startPrice: 0.015 },
+    { id: 'harambe', name: 'Harambe', symbol: 'HARAMBE', color: '#8B4513', startPrice: 0.02 },
+    { id: 'roost', name: 'Roost', symbol: 'ROOST', color: '#FFD700', startPrice: 0.05 },
+    { id: 'tremp', name: 'Tremp', symbol: 'TREMP', color: '#FFA07A', startPrice: 0.80 },
+    { id: 'duge', name: 'Duge', symbol: 'DUGE', color: '#F4A460', startPrice: 0.001 }
+];
+
+export const getRandomMemeContenders = () => {
+    const shuffled = [...MEME_TOKENS].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 6);
+
+    const contendersObj: Record<string, any> = {};
+    selected.forEach(t => {
+        contendersObj[t.id] = {
+            ...t,
+            startMetric: t.startPrice,
+            currentMetric: t.startPrice,
+            performance: 0,
+            position: 0
+        };
+    });
+
+    return contendersObj;
+};
+
 export const FOOTBALL_PLAYERS = [
     { id: 'saliba', name: 'W. Saliba', symbol: 'SAL', color: '#EF0107' },
     { id: 'odegaard', name: 'M. Ødegaard', symbol: 'ODE', color: '#EF0107' },

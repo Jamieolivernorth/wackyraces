@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
-    const { user, ready, authenticated, logout } = usePrivy();
+    const { user, ready, authenticated, logout, linkEmail } = usePrivy();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     const [isPrivateModalOpen, setIsPrivateModalOpen] = useState(false);
@@ -55,6 +55,7 @@ export default function DashboardPage() {
     }, [ready, authenticated, router]);
 
     if (!isClient || !ready || (!authenticated && typeof window !== 'undefined' && window.location.pathname !== '/demo')) {
+        console.log("Loading state: ", { isClient, ready, authenticated, pathname: typeof window !== 'undefined' ? window.location.pathname : 'server' });
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
@@ -79,7 +80,8 @@ export default function DashboardPage() {
                     </Link>
                     <div className="h-4 w-[1px] bg-gray-800 hidden sm:block" />
                     <nav className="hidden sm:flex gap-4 text-sm font-bold text-gray-400">
-                        <Link href="/dashboard" className="text-white flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-md"><LayoutDashboard className="w-4 h-4" /> Hub</Link>
+                        <Link href="/dashboard" className="text-white flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-md"><LayoutDashboard className="w-4 h-4" /> Console</Link>
+                        <Link href="/leaderboard" className="hover:text-white flex items-center gap-2 px-3 py-1.5 transition-colors"><Trophy className="w-4 h-4" /> Leaderboard</Link>
                         <Link href="/profile" className="hover:text-white flex items-center gap-2 px-3 py-1.5 transition-colors"><UserCircle className="w-4 h-4" /> Profile</Link>
                     </nav>
                 </div>
@@ -102,13 +104,32 @@ export default function DashboardPage() {
             {/* Main Dashboard Content */}
             <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
 
+                {/* Email Verification Banner */}
+                {authenticated && !user?.email && (
+                    <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <span className="text-red-400 text-2xl">⚠️</span>
+                            <div>
+                                <h4 className="font-bold text-red-400">Action Required: Link Email to Play</h4>
+                                <p className="text-sm text-red-300/80">You logged in with a wallet. For sybil resistance, an email is required to access the terminals.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={linkEmail}
+                            className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg whitespace-nowrap"
+                        >
+                            Link Email Now
+                        </button>
+                    </div>
+                )}
+
                 {/* Welcome Section */}
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl md:text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-700 tracking-tighter">
-                        OPERATOR TERMINAL
+                        WACKY RACES CONSOLE
                     </h1>
                     <p className="text-gray-400 font-mono text-sm max-w-xl">
-                        Select an active liquidity pool below to place your wagers and ride the lightning.
+                        Select a game module below to play. Free-to-play beta is currently active.
                     </p>
                 </div>
 
@@ -135,13 +156,15 @@ export default function DashboardPage() {
                         <div className="shrink-0 w-full md:w-auto flex flex-col gap-3">
                             <button
                                 onClick={() => router.push('/game/1')}
-                                className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-black italic text-xl px-10 py-5 rounded-xl transition-all hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.4)] flex items-center justify-center gap-3 border border-blue-400"
+                                disabled={!user?.email}
+                                className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black italic text-xl px-10 py-5 rounded-xl transition-all hover:scale-105 shadow-[0_0_30px_rgba(37,99,235,0.4)] flex items-center justify-center gap-3 border border-blue-400"
                             >
                                 <PlayCircle className="w-6 h-6" /> JOIN POOL
                             </button>
                             <button
                                 onClick={() => setIsPrivateModalOpen(true)}
-                                className="w-full md:w-auto bg-transparent hover:bg-white/5 text-blue-400 font-bold text-sm px-6 py-3 rounded-xl transition-all border border-blue-500/30 flex items-center justify-center gap-2"
+                                disabled={!user?.email}
+                                className="w-full md:w-auto bg-transparent hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 font-bold text-sm px-6 py-3 rounded-xl transition-all border border-blue-500/30 flex items-center justify-center gap-2"
                             >
                                 Create Private Race
                             </button>
@@ -223,34 +246,18 @@ export default function DashboardPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                        {/* Football Mode */}
-                        <div
-                            onClick={() => router.push('/game/football')}
-                            className="bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-4 hover:border-green-500/50 hover:bg-[#151515] transition-all cursor-pointer group"
-                        >
-                            <div className="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center border border-green-500/30 group-hover:bg-green-500/20">
-                                <span className="text-2xl">⚽️</span>
-                            </div>
-                            <div>
-                                <h4 className="text-xl font-black italic text-white group-hover:text-green-400 transition-colors">MATCH DAY DERBY</h4>
-                                <p className="text-sm text-gray-500 mt-1">Live sports data driving the race. Back your favorite teams dynamically.</p>
-                            </div>
-                            <div className="mt-auto pt-4 flex items-center justify-between text-xs font-mono text-gray-600 border-t border-gray-800">
-                                <span>LIVE DATA</span>
-                                <span className="text-green-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> ONLINE</span>
-                            </div>
-                        </div>
-
                         {/* Meme Mode */}
                         <div
-                            onClick={() => router.push('/game/meme')}
-                            className="bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-4 hover:border-pink-500/50 hover:bg-[#151515] transition-all cursor-pointer group"
+                            onClick={() => {
+                                if (user?.email) router.push('/game/meme');
+                            }}
+                            className={`bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-4 transition-all group ${user?.email ? 'hover:border-pink-500/50 hover:bg-[#151515] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                         >
                             <div className="w-12 h-12 bg-pink-900/30 rounded-xl flex items-center justify-center border border-pink-500/30 group-hover:bg-pink-500/20">
                                 <span className="text-2xl">🐕</span>
                             </div>
                             <div>
-                                <h4 className="text-xl font-black italic text-white group-hover:text-pink-400 transition-colors">MEMECOIN MELEE</h4>
+                                <h4 className={`text-xl font-black italic text-white ${user?.email ? 'group-hover:text-pink-400 transition-colors' : ''}`}>MEMECOIN MELEE</h4>
                                 <p className="text-sm text-gray-500 mt-1">Extreme volatility. Doge, Shiba, Pepe, and more. Risk on.</p>
                             </div>
                             <div className="mt-auto pt-4 flex items-center justify-between text-xs font-mono text-gray-600 border-t border-gray-800">
@@ -259,15 +266,52 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Under Construction */}
-                        <div className="bg-black border border-dashed border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 opacity-60 grayscale cursor-not-allowed">
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-900">
-                                <span className="text-2xl opacity-50">🔒</span>
+                        {/* World Cup Pens */}
+                        <div
+                            onClick={() => {
+                                if (user?.email) router.push('/world-cup-pens');
+                            }}
+                            className={`bg-[#111] border border-gray-800 rounded-2xl p-6 flex flex-col gap-4 transition-all group ${user?.email ? 'hover:border-green-500/50 hover:bg-[#151515] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                        >
+                            <div className="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center border border-green-500/30 group-hover:bg-green-500/20">
+                                <span className="text-2xl">🥅</span>
+                            </div>
+                            <div>
+                                <h4 className={`text-xl font-black italic text-white ${user?.email ? 'group-hover:text-green-400 transition-colors' : ''}`}>WORLD CUP PENS</h4>
+                                <p className="text-sm text-gray-500 mt-1">Odds-based penalty shootout. Pick your team, upgrade strikers, climb ranks.</p>
+                            </div>
+                            <div className="mt-auto pt-4 flex items-center justify-between text-xs font-mono text-gray-600 border-t border-gray-800">
+                                <span>SOLO MODE</span>
+                                <span className="text-green-500 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE</span>
+                            </div>
+                        </div>
+                        <div className="bg-black border border-dashed border-gray-800 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 opacity-80 cursor-default relative overflow-hidden group">
+                            <div className="absolute top-3 right-3 bg-green-500/20 text-green-400 text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded">Coming Soon</div>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-900 border border-gray-800">
+                                <span className="text-2xl">⚽</span>
                             </div>
                             <div className="text-center">
-                                <h4 className="text-lg font-bold text-gray-400">Classified</h4>
-                                <p className="text-xs text-gray-600 mt-1">Unlocking in Phase 9</p>
+                                <h4 className="text-lg font-bold text-gray-300">Football Derby</h4>
+                                <p className="text-xs text-gray-500 mt-1 max-w-[200px] leading-relaxed">Live match day data driving the race. Back your squad.</p>
                             </div>
+                            <button
+                                onClick={async () => {
+                                    if (!user?.email?.address) return;
+                                    try {
+                                        const res = await fetch('/api/waitlist', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ email: user.email.address })
+                                        });
+                                        if (res.ok) alert('You are on the list! We will notify you when Football Derby goes live.');
+                                        else if (res.status === 409) alert('You are already on the notification list.');
+                                        else alert('Failed to join notification list.');
+                                    } catch (e) { }
+                                }}
+                                className="mt-2 text-xs font-bold text-white bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg transition-colors cursor-pointer z-10"
+                            >
+                                NOTIFY ME
+                            </button>
                         </div>
 
                     </div>

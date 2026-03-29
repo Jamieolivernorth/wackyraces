@@ -22,9 +22,11 @@ export async function GET(request: NextRequest) {
         let user = users[0];
 
         if (!user) {
+            console.log(`[AUTH DEBUG] Attempting to create new user for wallet: ${wallet}`);
             // Sybil Resistance: Require Auth Token to create a NEW user
             const authHeader = request.headers.get('authorization');
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                console.log(`[AUTH DEBUG] Missing or invalid authorization header`);
                 return NextResponse.json({ error: 'Authentication required to register' }, { status: 401 });
             }
 
@@ -33,19 +35,24 @@ export async function GET(request: NextRequest) {
             try {
                 verifiedClaims = await privy.verifyAuthToken(token);
             } catch (error) {
+                console.log(`[AUTH DEBUG] Invalid or expired auth token`);
                 return NextResponse.json({ error: 'Invalid or expired authentication token' }, { status: 403 });
             }
 
             const privyUserId = verifiedClaims.userId;
+            console.log(`[AUTH DEBUG] Verified token for Privy ID: ${privyUserId}`);
 
             // Sybil Resistance: Check if this Privy ID already has an account under a different wallet
             const existingPrivyUsers = await sql`SELECT wallet_address FROM users WHERE privy_id = ${privyUserId}`;
             if (existingPrivyUsers.length > 0) {
+                console.log(`[AUTH DEBUG] Privy ID already linked to wallet: ${existingPrivyUsers[0].wallet_address}`);
                 return NextResponse.json({ error: 'This Privy account is already linked to another wallet' }, { status: 403 });
             }
 
             // Fetch full user data from Privy to check for social/email links
+            console.log(`[AUTH DEBUG] Fetching full Privy user data...`);
             const privyUser = await privy.getUser(privyUserId);
+            console.log(`[AUTH DEBUG] Privy user data loaded: Email=${privyUser.email?.address || 'none'}, Google=${!!privyUser.google}, Twitter=${!!privyUser.twitter}`);
 
             // Allow if there is an email, google, twitter, or discord account linked
             const hasVerifiedIdentity = !!(
@@ -56,10 +63,13 @@ export async function GET(request: NextRequest) {
             );
 
             if (!hasVerifiedIdentity) {
+                console.log(`[AUTH DEBUG] Identity verification failed. No linked external accounts.`);
                 return NextResponse.json({
                     error: 'Identity verification required. Please link an Email, Twitter, Discord, or Google account in your profile.'
                 }, { status: 403 });
             }
+
+            console.log(`[AUTH DEBUG] Inserting new user into DB...`);
 
             let referredBy = null;
             if (ref && ref !== wallet) {
@@ -81,9 +91,9 @@ export async function GET(request: NextRequest) {
             user = users[0];
         }
 
-        return NextResponse.json(user);
+        return NextResponse.json({ ...user });
     } catch (err) {
-        console.error(err);
+        console.error(`[AUTH ERROR] Database error:`, err);
         return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
 }

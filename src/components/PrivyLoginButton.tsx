@@ -10,7 +10,10 @@ export function PrivyLoginButton() {
 
     useEffect(() => {
         if (ready && authenticated) {
-            router.push('/dashboard');
+            // Add a small delay so WalletSync can hit the /api/user endpoint first before we jump
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 1000);
         }
     }, [ready, authenticated, router]);
 
@@ -21,7 +24,7 @@ export function PrivyLoginButton() {
             className={`bg-blue-600 hover:bg-blue-500 text-white font-black italic text-xl px-12 py-4 rounded-full transition-all hover:scale-105 shadow-[0_0_20px_rgba(37,99,235,0.5)] border-2 border-blue-400 ${!ready ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
         >
-            Sign Up / Login
+            Play Free Now
         </button>
     );
 }

@@ -17,15 +17,15 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { useGameStore } from '@/store/gameStore';
 import { useEffect } from 'react';
 
-export default function Home() {
+export default function MemeGame() {
   const { isMuted, toggleMute } = useAudioEngine();
   const setGameMode = useGameStore((state) => state.setGameMode);
   const onchainEnabled = useGameStore((state) => state.onchainEnabled);
   const isPrivateRace = useGameStore((state) => state.isPrivateRace);
 
   useEffect(() => {
-    // Ensure we reset to CRYPTO mode if someone navigates here from Meme mode
-    setGameMode('CRYPTO');
+    // Force the game store into meme mode when we hit this page
+    setGameMode('MEME');
   }, [setGameMode]);
 
   return (
@@ -55,8 +55,8 @@ export default function Home() {
           <header className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4 md:gap-6 relative w-full">
 
             <div className="flex flex-col items-center md:items-start text-center md:text-left flex-1 w-full">
-              <p className="text-gray-400 font-bold tracking-widest text-[10px] sm:text-xs md:text-sm uppercase mt-2 md:mt-3 md:ml-2 neon-text-blue opacity-80">
-                Welcome to the Underground Web3 Derbies
+              <p className="text-gray-400 font-bold tracking-widest text-[10px] sm:text-xs md:text-sm uppercase mt-2 md:mt-3 md:ml-2 neon-text-pink opacity-80">
+                Welcome to Memecoin Melee
               </p>
             </div>
 

@@ -31,7 +31,7 @@ export default function Home() {
       <div className="relative z-10 flex flex-col flex-1 mt-12">
         <header className="max-w-4xl mx-auto flex flex-col items-center justify-center text-center gap-6 relative px-4">
           <div className="inline-block -rotate-2 transform hover:rotate-0 transition-transform duration-500 drop-shadow-2xl">
-            <img src="/logo-3d.png" alt="Wacky Races Logo 3D" className="w-[280px] md:w-[400px] lg:w-[500px] object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+            {/* Logo removed per user request */}
           </div>
           <p className="text-gray-300 font-bold tracking-widest text-lg md:text-2xl uppercase mt-4 neon-text-blue opacity-90 max-w-2xl">
             Welcome to the Underground Web3 Derbies.
@@ -43,12 +43,6 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <PrivyLoginButton />
-            <button
-              onClick={() => router.push('/waitlist')}
-              className="bg-black/80 hover:bg-gray-900 text-gray-300 border border-gray-700 font-bold px-10 py-4 rounded-full transition-all hover:scale-105"
-            >
-              Join Waitlist
-            </button>
           </div>
         </header>
 

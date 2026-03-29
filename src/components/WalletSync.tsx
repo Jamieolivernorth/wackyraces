@@ -14,7 +14,7 @@ function SyncWorker() {
     const searchParams = useSearchParams();
     const ref = searchParams.get('ref');
 
-    const { getAccessToken } = usePrivy();
+    const { getAccessToken, user, ready, authenticated } = usePrivy();
 
     useEffect(() => {
         fetchSettings();
@@ -22,8 +22,11 @@ function SyncWorker() {
 
     useEffect(() => {
         const syncUser = async () => {
-            if (connected && publicKey) {
-                const walletAddress = publicKey.toBase58();
+            const externalWallet = connected && publicKey ? publicKey.toBase58() : null;
+            const privyWallet = user?.wallet?.address;
+            const walletAddress = externalWallet || privyWallet;
+
+            if (ready && authenticated && walletAddress) {
                 setWalletAddress(walletAddress); // Let store know
 
                 let url = `/api/user?wallet=${walletAddress}`;
@@ -32,6 +35,8 @@ function SyncWorker() {
                 try {
                     // Get Privy JWT to authorize account creation/sync
                     const token = await getAccessToken();
+
+                    console.log(`[WalletSync] Syncing user. Wallet: ${walletAddress}, Token Present: ${!!token}`);
 
                     // Fetch or create user in SQLite DB
                     const res = await fetch(url, {
@@ -51,7 +56,8 @@ function SyncWorker() {
                 } catch (err) {
                     console.error("Error syncing wallet:", err);
                 }
-            } else {
+            } else if (ready) {
+                console.log(`[WalletSync] Ready but skipping sync. Auth=${authenticated}, Wallet=${walletAddress}, PrivyWallet=${user?.wallet?.address}`);
                 // Disconnected, revert to 0 or mock 10000
                 setWalletAddress(null);
                 setBalance(0);
@@ -59,7 +65,7 @@ function SyncWorker() {
         };
 
         syncUser();
-    }, [connected, publicKey, setBalance, setWalletAddress, ref, getAccessToken]);
+    }, [connected, publicKey, setBalance, setWalletAddress, ref, getAccessToken, user, ready, authenticated]);
 
     return null;
 }

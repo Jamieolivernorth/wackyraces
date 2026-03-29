@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/gameStore';
 import { PlayCircle, Share2, Users, Crown, Loader2 } from 'lucide-react';
 
 export default function PrivateRaceLobby() {
-    const { user, ready, authenticated } = usePrivy();
+    const { user, ready, authenticated, login } = usePrivy();
     const router = useRouter();
     const params = useParams();
     const raceId = params.id as string;
@@ -71,7 +71,36 @@ export default function PrivateRaceLobby() {
     }, [race?.status, race?.start_time, participants]);
 
 
-    if (!ready || loading) {
+    if (!ready) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+            </div>
+        );
+    }
+
+    if (!authenticated) {
+        return (
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden">
+                <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-900/20 to-black pointer-events-none" />
+                <div className="bg-[#111] border border-white/10 p-8 rounded-3xl max-w-md w-full text-center relative z-10 shadow-[0_0_50px_rgba(59,130,246,0.1)]">
+                    <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <Users className="w-8 h-8 text-blue-400" />
+                    </div>
+                    <h1 className="text-3xl text-white font-black italic mb-2 tracking-tight">PRIVATE LOBBY</h1>
+                    <p className="text-gray-400 mb-8 text-sm">You have been invited to a private pari-mutuel race. Please connect an account to pick your runner.</p>
+                    <button
+                        onClick={() => login()}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-8 rounded-xl shadow-lg transition-transform hover:scale-[1.02] border border-blue-400 font-mono"
+                    >
+                        CONNECT TO JOIN
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (loading) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
                 <div className="w-8 h-8 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />

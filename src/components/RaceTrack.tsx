@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { FootballEventOverlay } from './FootballEventOverlay';
 
@@ -8,6 +8,12 @@ export const RaceTrack = () => {
     const lastWinner = useGameStore((state) => state.lastWinner);
     const racingTimePassed = useGameStore((state) => state.racingTimePassed);
     const mode = useGameStore((state) => state.mode);
+
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const isFinal30s = mode === 'FOOTBALL' && phase === 'RACING' && racingTimePassed >= 270;
 
@@ -86,7 +92,11 @@ export const RaceTrack = () => {
                     <div key={c.id} className="flex items-center justify-between gap-6 px-2 py-1 rounded bg-white/5 border border-white/5">
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] text-gray-500 font-mono w-3">{idx + 1}</span>
-                            <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: c.color, boxShadow: `0 0 5px ${c.color}` }} />
+                            {isMounted ? (
+                                <div className="w-3 h-3 rounded-full shadow-sm shrink-0" style={{ backgroundColor: c.color, boxShadow: `0 0 5px ${c.color}` }} />
+                            ) : (
+                                <div className="w-3 h-3 rounded-full shadow-sm shrink-0 bg-gray-500" />
+                            )}
                             <span className="font-bold text-[10px] sm:text-xs text-white">{c.symbol}</span>
                         </div>
                         <span className="text-[10px] sm:text-xs text-gray-400 font-mono text-right">{c.position.toFixed(1)}%</span>
@@ -105,7 +115,11 @@ export const RaceTrack = () => {
                         <div key={c.id} className="flex items-center justify-between gap-1 px-2 py-1.5 rounded bg-white/5 border border-white/5">
                             <div className="flex items-center gap-1.5">
                                 <span className="text-[9px] text-gray-500 font-mono w-2">{idx + 1}</span>
-                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                                {isMounted ? (
+                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                                ) : (
+                                    <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-gray-500" />
+                                )}
                                 <span className="font-bold text-[9px] text-white truncate max-w-[35px]">{c.symbol}</span>
                             </div>
                             <span className="text-[9px] text-gray-400 font-mono text-right">{c.position.toFixed(1)}%</span>

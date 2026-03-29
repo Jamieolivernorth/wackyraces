@@ -1,7 +1,7 @@
 export type ContenderId = string;
 export type TrackId = 'casual' | 'pro' | 'high_roller';
 
-export type GameMode = 'CRYPTO' | 'FOOTBALL';
+export type GameMode = 'CRYPTO' | 'FOOTBALL' | 'MEME';
 
 export type FootballEventType = 'Touch' | 'Pass' | 'ForwardPass' | 'KeyPass' | 'Shot' | 'ShotOnTarget' | 'Assist' | 'Goal' | 'Dispossessed' | 'YellowCard' | 'RedCard';
 

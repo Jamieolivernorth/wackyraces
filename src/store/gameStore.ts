@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Contender, ContenderId, GamePhase, Bet, GameMode, PHASE_DURATIONS, PastRace, TrackId } from '../types/game';
 import { calculateMovement, calculateFootballMovement } from '../lib/mathEngine';
-import { getRandomContenders, getFootballContenders, TOP_TOKENS } from '../lib/tokens';
+import { getRandomContenders, getFootballContenders, getRandomMemeContenders, TOP_TOKENS, MEME_TOKENS } from '../lib/tokens';
 import { binanceFeed } from '../lib/binanceFeed';
 import { footballSimulator, getRoleFromIndex } from '../lib/footballEngine';
 
@@ -47,8 +47,10 @@ interface GameState {
     racingTimePassed: number;
     currentRake: number;
     referralFee: number;
+    onchainEnabled: boolean;
     selectedTrackId: TrackId | null;
     lastPayout: number;
+    isPrivateRace: boolean;
 }
 
 export interface GameActions {
@@ -103,12 +105,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
         history: [],
         raceId: 1,
         walletAddress: null,
+        onchainEnabled: false,
         alphaLeaks: [],
         racingTimePassed: 0,
         currentRake: 0.10, // 10% default
         referralFee: 0.05, // 5% default
         selectedTrackId: null,
         lastPayout: 0,
+        isPrivateRace: false,
 
         setSelectedTrack: (trackId: TrackId | null) => set({ selectedTrackId: trackId }),
         setGameMode: (mode: GameMode, targetTouches?: number) => set({ mode }),
@@ -123,7 +127,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                     const data = await res.json();
                     set({
                         currentRake: data.current_rake,
-                        referralFee: data.referral_fee
+                        referralFee: data.referral_fee,
+                        onchainEnabled: data.onchain_enabled === true
                     });
                 }
             } catch (e) {
@@ -412,7 +417,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                                         winnerships: totalPayoutToUser > 0 ? [{ wallet: walletAddress, amount: totalPayoutToUser }] : [],
                                         referrers,
                                         houseRake: houseRakeValue,
-                                        poolVolume: totalPoolVolume
+                                        poolVolume: totalPoolVolume,
+                                        participantResult: {
+                                            wallet: walletAddress,
+                                            isWinner: totalPayoutToUser > 0,
+                                            amountWon: totalPayoutToUser,
+                                            raceId: `RACE-${raceId}`,
+                                            mode: mode
+                                        }
                                     };
 
                                     return fetch('/api/race/payout', {
@@ -505,11 +517,13 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
             const nextUpcoming = [
                 upcomingRaces[1],
                 upcomingRaces[2],
-                mode === 'FOOTBALL' ? getFootballContenders() as Record<ContenderId, Contender> : getRandomContenders() as Record<ContenderId, Contender>
+                mode === 'FOOTBALL' ? getFootballContenders() as Record<ContenderId, Contender> :
+                    mode === 'MEME' ? getRandomMemeContenders() as Record<ContenderId, Contender> :
+                        getRandomContenders() as Record<ContenderId, Contender>
             ];
 
             // Connect WS to the new tokens
-            if (mode === 'CRYPTO') {
+            if (mode === 'CRYPTO' || mode === 'MEME') {
                 binanceFeed.subscribe(Object.keys(nextContenders));
             }
 
@@ -523,14 +537,15 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                 stagedBets: [],
                 lastWinner: null,
                 lastPayout: 0,
-                alphaLeaks: []
+                alphaLeaks: [],
+                isPrivateRace: false
             });
         },
 
         startPrivateRace: (participants: any[], entryFee: number) => {
             const nextContenders: Record<string, any> = {};
             participants.forEach((p) => {
-                const tokenDef = TOP_TOKENS.find(t => t.id === p.selected_token);
+                const tokenDef = TOP_TOKENS.find(t => t.id === p.selected_token) || MEME_TOKENS.find(t => t.id === p.selected_token);
                 if (tokenDef) {
                     nextContenders[p.selected_token] = {
                         ...tokenDef,
@@ -560,7 +575,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                 stagedBets: [],
                 lastWinner: null,
                 lastPayout: 0,
-                alphaLeaks: []
+                alphaLeaks: [],
+                isPrivateRace: true
             });
         }
     };

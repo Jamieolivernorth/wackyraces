@@ -9,6 +9,7 @@ export const SettingsManager = () => {
 
     const [rake, setRake] = useState('0.10');
     const [referral, setReferral] = useState('0.02');
+    const [onchainEnabled, setOnchainEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
@@ -18,6 +19,7 @@ export const SettingsManager = () => {
             .then(data => {
                 if (data.current_rake !== undefined) setRake(data.current_rake.toString());
                 if (data.referral_fee !== undefined) setReferral(data.referral_fee.toString());
+                if (data.onchain_enabled !== undefined) setOnchainEnabled(data.onchain_enabled === true);
             })
             .catch(console.error)
             .finally(() => setFetching(false));
@@ -37,7 +39,7 @@ export const SettingsManager = () => {
             await fetch('/api/admin/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ current_rake: parsedRake, referral_fee: parsedRef })
+                body: JSON.stringify({ current_rake: parsedRake, referral_fee: parsedRef, onchain_enabled: onchainEnabled })
             });
             alert('Settings saved successfully!');
         } catch (e) {
@@ -112,6 +114,29 @@ export const SettingsManager = () => {
                             className="sr-only peer"
                         />
                         <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div className={`p-5 rounded-xl border mb-6 transition-colors ${onchainEnabled ? 'bg-blue-900/20 border-blue-500/50' : 'bg-black/30 border-gray-800'}`}>
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h4 className={`text-lg font-bold flex items-center gap-2 ${onchainEnabled ? 'text-blue-400' : 'text-gray-300'}`}>
+                            <span className="text-xl">💰</span>
+                            Enable Onchain Play
+                        </h4>
+                        <p className="text-sm text-gray-500 mt-1">
+                            When enabled, the game demands Wallet connections and allows real on-chain deposits/withdrawals. Otherwise, it operates as a free-to-play simulation.
+                        </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer mt-1">
+                        <input
+                            type="checkbox"
+                            checked={onchainEnabled}
+                            onChange={(e) => setOnchainEnabled(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                     </label>
                 </div>
             </div>
