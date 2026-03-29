@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
+import { TEAMS_DATA } from '@/lib/wcTeams';
 
 export async function POST(req: NextRequest) {
     try {
@@ -58,6 +59,31 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        if (type === 'SOLO') {
+            // Instant AI match for single player
+            const [newRoom] = await sql`
+                INSERT INTO penalty_rooms (entry_fee, type, status, participant_count) 
+                VALUES (${entryFee}, 'SOLO', 'PLAYING', 1)
+                RETURNING id
+            `;
+            roomId = newRoom.id;
+            await sql`
+                INSERT INTO penalty_room_participants (room_id, wallet_address, team_id, team_name, selection_confirmed) 
+                VALUES (${roomId}, ${wallet}, ${teamId}, ${teamName}, TRUE)
+            `;
+            
+        // Create the first match
+        const teamIds = TEAMS_DATA.map(t => t.id);
+        const p2_team = teamIds[Math.floor(Math.random() * teamIds.length)];
+        const [match] = await sql`
+                INSERT INTO penalty_matches (room_id, player1_wallet, player2_wallet, p1_team_id, p2_team_id, is_ai)
+                VALUES (${roomId}, ${wallet}, 'COMPUTER', ${teamId}, ${p2_team}, TRUE)
+                RETURNING id
+            `;
+            
+            return NextResponse.json({ success: true, roomId, matchId: match.id });
+        }
+
         if (type === 'TOURNAMENT' && !inviteCode) {
             // Create a new private tournament
             finalInviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -95,6 +121,19 @@ export async function POST(req: NextRequest) {
                     ON CONFLICT (room_id, wallet_address) DO UPDATE SET team_id = ${teamId}, team_name = ${teamName}
                 `;
                 await sql`UPDATE penalty_rooms SET participant_count = (SELECT COUNT(*) FROM penalty_room_participants WHERE room_id = ${roomId}), status = 'PLAYING' WHERE id = ${roomId}`;
+                
+                // For direct PvP join, we might need matchId if it just hit status PLAYING
+                const matches = await sql`SELECT id FROM penalty_matches WHERE room_id = ${roomId} ORDER BY created_at DESC LIMIT 1`;
+                if (matches.length === 0) {
+                    // Start match action was likely needed or should be auto-triggered here for consistency
+                    const participants = await sql`SELECT wallet_address, team_id FROM penalty_room_participants WHERE room_id = ${roomId}`;
+                    const [match] = await sql`
+                        INSERT INTO penalty_matches (room_id, player1_wallet, player2_wallet, p1_team_id, p2_team_id, is_ai)
+                        VALUES (${roomId}, ${participants[0].wallet_address}, ${participants[1].wallet_address}, ${participants[0].team_id}, ${participants[1].team_id}, FALSE)
+                        RETURNING id
+                    `;
+                    return NextResponse.json({ success: true, roomId, matchId: match.id });
+                }
             } else {
                 const [newRoom] = await sql`
                     INSERT INTO penalty_rooms (entry_fee, type, status, participant_count) 

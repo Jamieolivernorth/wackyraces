@@ -80,11 +80,9 @@ export default function WorldCupPensGame() {
 
     const [playerTeam, setPlayerTeam] = useState<{id: string, name: string} | null>(null);
 
-    useEffect(() => { setIsClient(true); }, []);
-
     useEffect(() => {
-        if (ready && !authenticated) router.push('/');
-        else if (ready && authenticated && user?.wallet?.address) {
+        setIsClient(true);
+        if (ready && authenticated && user?.wallet?.address) {
             loadUserData();
         }
     }, [ready, authenticated, user]);
@@ -100,6 +98,27 @@ export default function WorldCupPensGame() {
             console.error(e);
         } finally {
             setLoadingData(false);
+        }
+    };
+
+    const handleAwardFunds = async () => {
+        if (!user?.wallet?.address) return;
+        setLoadingAction(true);
+        try {
+            const res = await fetch('/api/user/deposit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wallet: user.wallet.address, amount: 1000 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setBalance(data.newBalance);
+                alert("Awarded $1,000 for testing!");
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingAction(false);
         }
     };
 
@@ -152,7 +171,8 @@ export default function WorldCupPensGame() {
 
     const handleTeamSelect = async (teamId: string, teamName: string) => {
         setPlayerTeam({ id: teamId, name: teamName });
-        handleJoinLobby(selectedTier!, false, teamId, teamName);
+        const type = isTournamentMode && !roomInviteCode ? 'SOLO' : roomType;
+        handleJoinLobby(selectedTier!, roomInviteCode ? true : false, teamId, teamName, type);
     };
 
     const handleStartTournament = async (tier: number) => {
@@ -162,25 +182,30 @@ export default function WorldCupPensGame() {
         setGameState('TEAM_SELECTION');
     };
 
-    const handleJoinLobby = async (tier: number, isPrivate: boolean = false, teamId?: string, teamName?: string) => {
+    const handleJoinLobby = async (tier: number, isPrivate: boolean = false, teamId?: string, teamName?: string, type: string = 'PVP') => {
         if (!user?.wallet?.address || !teamId) return;
         setLoadingAction(true);
         try {
             const res = await fetch('/api/wc-pens/lobby', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ wallet: user.wallet.address, tier, isPrivate, teamId, teamName })
+                body: JSON.stringify({ wallet: user.wallet.address, tier, type, isPrivate, teamId, teamName })
             });
             const data = await res.json();
             if (data.success) {
                 setRoomId(data.roomId);
                 setSelectedTier(tier);
-                setGameState('LOBBY');
-                setRoomInviteCode(data.inviteCode);
-                startLobbyPolling(data.roomId);
+                if (data.matchId) {
+                    startMatch(data.roomId, data.matchId);
+                } else {
+                    setGameState('LOBBY');
+                    setRoomInviteCode(data.inviteCode);
+                    startLobbyPolling(data.roomId);
+                }
             } else {
                 alert(data.error);
                 setGameState('SELECTION');
+                setLoadingAction(false);
             }
         } finally {
             setLoadingAction(false);
@@ -436,7 +461,7 @@ export default function WorldCupPensGame() {
                         <div className="flex flex-col w-full gap-3 mt-auto">
                             <button 
                                 onClick={() => setShowEmailModal({ type: 'CREATE', tier })}
-                                disabled={loadingAction || balance < tier}
+                                disabled={loadingAction || (tier !== 0 && balance < tier)}
                                 className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 rounded-xl font-black italic transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50 relative z-10 text-black uppercase tracking-wider text-sm"
                             >
                                 FRIEND TOURNAMENT
@@ -778,6 +803,13 @@ export default function WorldCupPensGame() {
                 </div>
 
                 <div className="flex items-center gap-6">
+                    <button 
+                        onClick={handleAwardFunds}
+                        disabled={loadingAction}
+                        className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black italic tracking-widest text-gray-400 hover:text-white transition-all focus:ring-1 focus:ring-blue-500/50"
+                    >
+                        + TEST FUNDS
+                    </button>
                     <div className="flex flex-col items-end">
                         <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Your Balance</div>
                         <div className="text-lg font-black italic text-green-400">${balance.toLocaleString()}</div>
