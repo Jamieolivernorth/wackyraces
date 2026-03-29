@@ -8,7 +8,7 @@ import { PenaltyPvPGame, PenaltyZone } from '@/components/wc-pens/PenaltyPvPGame
 import { TeamSelection } from '@/components/wc-pens/TeamSelection';
 
 export default function WorldCupPensGame() {
-    const { user, ready, authenticated } = usePrivy();
+    const { user, ready, authenticated, login } = usePrivy();
     const router = useRouter();
 
     const [isClient, setIsClient] = useState(false);
@@ -101,8 +101,16 @@ export default function WorldCupPensGame() {
         }
     };
 
+    const checkAuth = () => {
+        if (!authenticated || !user?.wallet?.address) {
+            login();
+            return false;
+        }
+        return true;
+    };
+
     const handleAwardFunds = async () => {
-        if (!user?.wallet?.address) return;
+        if (!checkAuth()) return;
         setLoadingAction(true);
         try {
             const res = await fetch('/api/user/deposit', {
@@ -183,7 +191,7 @@ export default function WorldCupPensGame() {
     };
 
     const handleJoinLobby = async (tier: number, isPrivate: boolean = false, teamId?: string, teamName?: string, type: string = 'PVP') => {
-        if (!user?.wallet?.address || !teamId) return;
+        if (!checkAuth() || !teamId) return;
         setLoadingAction(true);
         try {
             const res = await fetch('/api/wc-pens/lobby', {
@@ -396,7 +404,7 @@ export default function WorldCupPensGame() {
     };
 
     const handleJoinTournament = async (inviteCode: string, email: string) => {
-        if (!user?.wallet?.address) return;
+        if (!checkAuth()) return;
         setLoadingAction(true);
         try {
             const res = await fetch('/api/wc-pens/lobby', { 
@@ -420,7 +428,7 @@ export default function WorldCupPensGame() {
     };
 
     const handleCreateTournament = async (tier: number, maxPlayers: number, email: string) => {
-        if (!user?.wallet?.address) return;
+        if (!checkAuth()) return;
         setLoadingAction(true);
         try {
             const res = await fetch('/api/wc-pens/lobby', {
@@ -460,31 +468,43 @@ export default function WorldCupPensGame() {
                         
                         <div className="flex flex-col w-full gap-3 mt-auto">
                             <button 
-                                onClick={() => setShowEmailModal({ type: 'CREATE', tier })}
-                                disabled={loadingAction || (tier !== 0 && balance < tier)}
-                                className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 rounded-xl font-black italic transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50 relative z-10 text-black uppercase tracking-wider text-sm"
+                                onClick={() => {
+                                    if (!checkAuth()) return;
+                                    setShowEmailModal({ type: 'CREATE', tier });
+                                }}
+                                disabled={loadingAction}
+                                className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 rounded-xl font-black italic transition-all shadow-lg shadow-yellow-500/20 disabled:opacity-50 relative z-50 text-black uppercase tracking-wider text-sm"
                             >
                                 FRIEND TOURNAMENT
                             </button>
                             <button 
-                                onClick={() => handleStartTournament(tier)}
-                                disabled={loadingAction || balance < tier}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-black italic transition-all disabled:opacity-50 relative z-10 text-white uppercase text-xs tracking-widest"
+                                onClick={() => {
+                                    if (!checkAuth()) return;
+                                    handleStartTournament(tier);
+                                }}
+                                disabled={loadingAction}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-black italic transition-all disabled:opacity-50 relative z-50 text-white uppercase text-xs tracking-widest"
                             >
                                 WORLD CUP (SOLO)
                             </button>
                             <button 
-                                onClick={() => handleTierSelect(tier)}
-                                disabled={loadingAction || balance < tier}
-                                className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all disabled:opacity-50 relative z-10 text-white text-xs"
+                                onClick={() => {
+                                    if (!checkAuth()) return;
+                                    handleTierSelect(tier);
+                                }}
+                                disabled={loadingAction}
+                                className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold transition-all disabled:opacity-50 relative z-50 text-white text-xs"
                             >
                                 PVP ARENA
                             </button>
                         </div>
 
                         <button 
-                            onClick={() => setShowEmailModal({ type: 'JOIN' })}
-                            className="text-[10px] text-gray-500 hover:text-white underline relative z-10 uppercase font-black"
+                            onClick={() => {
+                                if (!checkAuth()) return;
+                                setShowEmailModal({ type: 'JOIN' });
+                            }}
+                            className="text-[10px] text-gray-500 hover:text-white underline relative z-50 uppercase font-black"
                         >
                             Join invite only
                         </button>
@@ -803,13 +823,22 @@ export default function WorldCupPensGame() {
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <button 
-                        onClick={handleAwardFunds}
-                        disabled={loadingAction}
-                        className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black italic tracking-widest text-gray-400 hover:text-white transition-all focus:ring-1 focus:ring-blue-500/50"
-                    >
-                        + TEST FUNDS
-                    </button>
+                    {!authenticated ? (
+                        <button 
+                            onClick={() => login()}
+                            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl font-black italic text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20"
+                        >
+                            Log In
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={handleAwardFunds}
+                            disabled={loadingAction}
+                            className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-black italic tracking-widest text-gray-400 hover:text-white transition-all focus:ring-1 focus:ring-blue-500/50"
+                        >
+                            + TEST FUNDS
+                        </button>
+                    )}
                     <div className="flex flex-col items-end">
                         <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Your Balance</div>
                         <div className="text-lg font-black italic text-green-400">${balance.toLocaleString()}</div>
