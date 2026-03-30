@@ -1,13 +1,13 @@
 'use client';
 
 import { usePrivy } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
-import { Wallet, Trophy, Target, Shield, Timer, Flame, Award, ShieldAlert, Camera, RefreshCw, ChevronLeft, Goal } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { Wallet, Trophy, Target, Shield, Timer, Flame, Award, ShieldAlert, Camera, RefreshCw, ChevronLeft, Goal, Copy, Share2 } from 'lucide-react';
 import { PenaltyPvPGame, PenaltyZone } from '@/components/wc-pens/PenaltyPvPGame';
 import { TeamSelection } from '@/components/wc-pens/TeamSelection';
 
-export default function WorldCupPensGame() {
+function WorldCupPensGame() {
     const { user, ready, authenticated, login } = usePrivy();
     const router = useRouter();
 
@@ -79,6 +79,15 @@ export default function WorldCupPensGame() {
     const [loadingAction, setLoadingAction] = useState(false);
 
     const [playerTeam, setPlayerTeam] = useState<{id: string, name: string} | null>(null);
+    const searchParams = useSearchParams();
+    const inviteParam = searchParams.get('invite');
+
+    useEffect(() => {
+        if (inviteParam && gameState === 'SELECTION') {
+            setInviteInput(inviteParam);
+            setShowEmailModal({ type: 'JOIN', inviteCode: inviteParam });
+        }
+    }, [inviteParam, gameState]);
 
     useEffect(() => {
         setIsClient(true);
@@ -617,19 +626,41 @@ export default function WorldCupPensGame() {
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse" />
             
             {roomType === 'TOURNAMENT' && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 p-6 rounded-2xl w-full max-w-sm mb-4">
-                    <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-widest mb-1">Invite Friends</p>
-                    <div className="flex items-center justify-center gap-4">
-                        <span className="text-3xl font-black italic text-white tracking-tighter">{roomInviteCode}</span>
-                        <button 
-                            onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/world-cup-pens?invite=${roomInviteCode}`);
-                                alert("Link copied!");
-                            }}
-                            className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
-                        >
-                            <ShieldAlert className="w-4 h-4" />
-                        </button>
+                <div className="bg-yellow-500/10 border border-yellow-500/20 p-6 rounded-3xl w-full max-w-sm mb-4 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-yellow-500/5 animate-pulse pointer-events-none" />
+                    <p className="text-[10px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-4 text-center">Invite Friends to Join</p>
+                    <div className="flex flex-col items-center gap-4 relative z-10">
+                        <span className="text-4xl font-black italic text-white tracking-tighter select-all">{roomInviteCode}</span>
+                        
+                        <div className="flex gap-2 w-full">
+                            <button 
+                                onClick={() => {
+                                    const url = `${window.location.origin}/world-cup-pens?invite=${roomInviteCode}`;
+                                    navigator.clipboard.writeText(url);
+                                    const btn = document.getElementById('copy-link-btn');
+                                    if (btn) {
+                                        const originalText = btn.innerHTML;
+                                        btn.innerHTML = '<span class="text-green-400">COPIED!</span>';
+                                        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+                                    }
+                                }}
+                                id="copy-link-btn"
+                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-[10px] font-black italic uppercase tracking-widest text-gray-400 hover:text-white"
+                            >
+                                <Copy className="w-3 h-3" /> Copy Link
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    const url = `${window.location.origin}/world-cup-pens?invite=${roomInviteCode}`;
+                                    const text = encodeURIComponent(`Join my Penalty Arena tournament! 🏆\n\nCode: ${roomInviteCode}\nJoin here: ${url}`);
+                                    window.open(`https://wa.me/?text=${text}`, '_blank');
+                                }}
+                                className="flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366]/10 hover:bg-[#25D366]/20 border border-[#25D366]/20 rounded-xl transition-all text-[10px] font-black italic uppercase tracking-widest text-[#25D366]"
+                            >
+                                <Share2 className="w-3 h-3" /> WhatsApp
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -983,5 +1014,18 @@ export default function WorldCupPensGame() {
                 )}
             </main>
         </div>
+    );
+}
+
+export default function WorldCupPensPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="text-blue-500 font-black italic uppercase tracking-[0.3em] animate-pulse">Initializing Arena...</div>
+            </div>
+        }>
+            <WorldCupPensGame />
+        </Suspense>
     );
 }
