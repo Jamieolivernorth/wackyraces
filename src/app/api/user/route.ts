@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            await sql`INSERT INTO users (wallet_address, privy_id, referred_by) VALUES (${wallet}, ${privyUserId}, ${referredBy})`;
+            const userEmail = privyUser.email?.address || null;
+            await sql`INSERT INTO users (wallet_address, privy_id, email, referred_by) VALUES (${wallet}, ${privyUserId}, ${userEmail}, ${referredBy})`;
 
             if (referredBy) {
                 // Viral Waitlist Loop: Reward the referrer with 100 free USDC for bringing a new user
@@ -89,6 +90,22 @@ export async function GET(request: NextRequest) {
 
             users = await sql`SELECT * FROM users WHERE wallet_address = ${wallet}`;
             user = users[0];
+        } else if (user && !user.email) {
+            // Optional: Sync email for existing users if missing
+            const authHeader = request.headers.get('authorization');
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                const token = authHeader.split(' ')[1];
+                try {
+                    const verifiedClaims = await privy.verifyAuthToken(token);
+                    const privyUser = await privy.getUser(verifiedClaims.userId);
+                    if (privyUser.email?.address) {
+                        await sql`UPDATE users SET email = ${privyUser.email.address} WHERE wallet_address = ${wallet}`;
+                        user.email = privyUser.email.address;
+                    }
+                } catch (e) {
+                    console.error("[AUTH ERROR] Email sync failed:", e);
+                }
+            }
         }
 
         return NextResponse.json({ ...user });

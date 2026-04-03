@@ -73,22 +73,30 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Record this turn
-        const [playerTurn] = await sql`
+        const turnResult = await sql`
             INSERT INTO penalty_turns (match_id, player_wallet, role, zone, is_multiplier) 
             VALUES (${matchId}, ${wallet}, ${role}, ${zone}, ${isMultiplierActive})
             RETURNING *
         `;
+        if (!turnResult || turnResult.length === 0) {
+            return NextResponse.json({ success: false, error: 'Failed to record turn' }, { status: 500 });
+        }
+        const playerTurn = turnResult[0];
 
         // 4. Handle AI match
         if (match.is_ai) {
             const aiRole = role === 'SHOOTER' ? 'KEEPER' : 'SHOOTER';
             const aiZone = ['LT', 'LB', 'C', 'RT', 'RB'][Math.floor(Math.random() * 5)];
             
-            const [aiTurn] = await sql`
+            const aiTurnResult = await sql`
                 INSERT INTO penalty_turns (match_id, player_wallet, role, zone) 
                 VALUES (${matchId}, 'COMPUTER', ${aiRole}, ${aiZone})
                 RETURNING *
             `;
+            if (!aiTurnResult || aiTurnResult.length === 0) {
+                return NextResponse.json({ success: false, error: 'Failed to record AI turn' }, { status: 500 });
+            }
+            const aiTurn = aiTurnResult[0];
 
             const shooterZone = role === 'SHOOTER' ? zone : aiZone;
             const keeperZone = role === 'KEEPER' ? zone : aiZone;
@@ -111,17 +119,19 @@ export async function POST(req: NextRequest) {
             await updateLeaderboard(wallet, points);
 
             const roundsRes = await sql`SELECT COUNT(*) as count FROM penalty_turns WHERE match_id = ${matchId} AND role = 'SHOOTER' AND is_goal IS NOT NULL`;
-            const rounds = parseInt(roundsRes[0].count);
+            const rounds = parseInt(roundsRes[0]?.count || '0');
             
             if (rounds >= 5) {
                 const scores = await sql`SELECT p1_score, p2_score FROM penalty_matches WHERE id = ${matchId}`;
-                const { p1_score, p2_score } = scores[0];
-                if (p1_score !== p2_score) {
-                    await sql`UPDATE penalty_matches SET status = 'FINISHED' WHERE id = ${matchId}`;
-                    const winner = p1_score > p2_score ? match.player1_wallet : 'COMPUTER';
-                    if (winner === wallet) {
-                        await updateLeaderboard(wallet, 500);
-                        await sql`UPDATE penalty_matches SET ${pointsField} = ${pointsField} + 500 WHERE id = ${matchId}`;
+                if (scores.length > 0) {
+                    const { p1_score, p2_score } = scores[0];
+                    if (p1_score !== p2_score) {
+                        await sql`UPDATE penalty_matches SET status = 'FINISHED' WHERE id = ${matchId}`;
+                        const winner = p1_score > p2_score ? match.player1_wallet : 'COMPUTER';
+                        if (winner === wallet) {
+                            await updateLeaderboard(wallet, 500);
+                            await sql`UPDATE penalty_matches SET ${pointsField} = ${pointsField} + 500 WHERE id = ${matchId}`;
+                        }
                     }
                 }
             }
@@ -172,17 +182,19 @@ export async function POST(req: NextRequest) {
             await updateLeaderboard(player2Wallet, p2Points);
 
             const roundsRes = await sql`SELECT COUNT(*) as count FROM penalty_turns WHERE match_id = ${matchId} AND is_goal IS NOT NULL AND role = 'SHOOTER'`;
-            const rounds = parseInt(roundsRes[0].count);
+            const rounds = parseInt(roundsRes[0]?.count || '0');
 
             if (rounds >= 5) {
                 const scores = await sql`SELECT p1_score, p2_score FROM penalty_matches WHERE id = ${matchId}`;
-                const { p1_score, p2_score } = scores[0];
-                if (p1_score !== p2_score) {
-                    await sql`UPDATE penalty_matches SET status = 'FINISHED' WHERE id = ${matchId}`;
-                    const winner = p1_score > p2_score ? player1Wallet : player2Wallet;
-                    await updateLeaderboard(winner, 500);
-                    const winnerField = winner === player1Wallet ? sql`p1_points` : sql`p2_points`;
-                    await sql`UPDATE penalty_matches SET ${winnerField} = ${winnerField} + 500 WHERE id = ${matchId}`;
+                if (scores.length > 0) {
+                    const { p1_score, p2_score } = scores[0];
+                    if (p1_score !== p2_score) {
+                        await sql`UPDATE penalty_matches SET status = 'FINISHED' WHERE id = ${matchId}`;
+                        const winner = p1_score > p2_score ? player1Wallet : player2Wallet;
+                        await updateLeaderboard(winner, 500);
+                        const winnerField = winner === player1Wallet ? sql`p1_points` : sql`p2_points`;
+                        await sql`UPDATE penalty_matches SET ${winnerField} = ${winnerField} + 500 WHERE id = ${matchId}`;
+                    }
                 }
             }
 

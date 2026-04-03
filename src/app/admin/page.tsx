@@ -3,6 +3,7 @@ import sql from '@/lib/db';
 import { Database, Users, TrendingUp, HandCoins } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsManager } from '@/components/admin/SettingsManager';
+import { UserList } from '@/components/admin/UserList';
 
 // Server-side database fetching
 async function getAdminStats() {
@@ -16,15 +17,19 @@ async function getAdminStats() {
         const referredUsersRes = await sql`SELECT COUNT(*) as count FROM users WHERE referred_by IS NOT NULL`;
         const referredUsers = referredUsersRes[0];
 
+        // Fetch user list for the directory
+        const userList = await sql`SELECT wallet_address, email, balance, created_at FROM users ORDER BY created_at DESC LIMIT 1000`;
+
         return {
             rake: stats?.total_rake || 0,
             volume: stats?.total_volume || 0,
             users: usersCount?.count || 0,
-            referred: referredUsers?.count || 0
+            referred: referredUsers?.count || 0,
+            userList: userList as any[]
         };
     } catch (e) {
         console.error("Admin DB Error", e);
-        return { rake: 0, volume: 0, users: 0, referred: 0 };
+        return { rake: 0, volume: 0, users: 0, referred: 0, userList: [] };
     }
 }
 
@@ -107,6 +112,9 @@ export default async function AdminDashboard() {
 
                 {/* Settings Panel */}
                 <SettingsManager />
+
+                {/* User Directory */}
+                <UserList users={stats.userList || []} />
             </main>
         </div>
     );

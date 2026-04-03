@@ -20,6 +20,7 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS users (
         wallet_address TEXT PRIMARY KEY,
         privy_id TEXT UNIQUE,
+        email TEXT,
         balance FLOAT DEFAULT 1000,
         wc_balance FLOAT DEFAULT 0,
         referred_by TEXT DEFAULT NULL,
@@ -202,6 +203,7 @@ async function initDb() {
       )
     `;
 
+    try { await sql`ALTER TABLE users ADD COLUMN email TEXT`; } catch (e) { }
     try { await sql`ALTER TABLE penalty_rooms ADD COLUMN type TEXT DEFAULT 'PVP'`; } catch (e) { }
     try { await sql`ALTER TABLE penalty_rooms ADD COLUMN max_players INTEGER DEFAULT 2`; } catch (e) { }
     try { await sql`ALTER TABLE penalty_rooms ADD COLUMN invite_code TEXT`; } catch (e) { }

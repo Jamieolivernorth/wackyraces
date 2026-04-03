@@ -9,20 +9,31 @@ export async function POST(req: NextRequest) {
         const roomIdParam = searchParams.get('roomId');
 
         if (action === 'START' && roomIdParam) {
+            console.log(`[LOBBY] Starting match for room: ${roomIdParam}`);
             const participants = await sql`SELECT wallet_address, team_id FROM penalty_room_participants WHERE room_id = ${roomIdParam}`;
             
+            if (participants.length === 0) {
+                return NextResponse.json({ success: false, error: 'No participants found in lobby' }, { status: 400 });
+            }
+
             let p1 = participants[0]?.wallet_address;
             let p1_team = participants[0]?.team_id;
             let p2 = participants[1]?.wallet_address || 'COMPUTER';
             let p2_team = participants[1]?.team_id || (participants[0]?.team_id === 'england' ? 'brazil' : 'england');
             let isAi = participants.length < 2;
 
-            const [match] = await sql`
+            const matchResult = await sql`
                 INSERT INTO penalty_matches (room_id, player1_wallet, player2_wallet, p1_team_id, p2_team_id, is_ai)
                 VALUES (${roomIdParam}, ${p1}, ${p2}, ${p1_team}, ${p2_team}, ${isAi})
                 RETURNING id
             `;
 
+            if (!matchResult || matchResult.length === 0) {
+                console.error(`[LOBBY ERROR] Failed to create match for room ${roomIdParam}`);
+                return NextResponse.json({ success: false, error: 'Failed to initialize match' }, { status: 500 });
+            }
+
+            const match = matchResult[0];
             await sql`UPDATE penalty_rooms SET status = 'PLAYING' WHERE id = ${roomIdParam}`;
             return NextResponse.json({ success: true, matchId: match.id });
         }
@@ -35,7 +46,7 @@ export async function POST(req: NextRequest) {
         }
 
         let entryFee = tier !== undefined ? parseInt(tier) : 0;
-        let roomId: number;
+        let roomId = 0;
         let finalInviteCode = inviteCode;
 
         // 1. If joining via invite, get the fee from the room
@@ -60,39 +71,54 @@ export async function POST(req: NextRequest) {
         }
 
         if (type === 'SOLO') {
+            console.log(`[LOBBY] Creating SOLO match for ${wallet}`);
             // Instant AI match for single player
-            const [newRoom] = await sql`
+            const roomResult = await sql`
                 INSERT INTO penalty_rooms (entry_fee, type, status, participant_count) 
                 VALUES (${entryFee}, 'SOLO', 'PLAYING', 1)
                 RETURNING id
             `;
-            roomId = newRoom.id;
+            if (!roomResult || roomResult.length === 0) {
+                return NextResponse.json({ success: false, error: 'Failed to create solo room' }, { status: 500 });
+            }
+            roomId = roomResult[0].id;
+
             await sql`
                 INSERT INTO penalty_room_participants (room_id, wallet_address, team_id, team_name, selection_confirmed) 
                 VALUES (${roomId}, ${wallet}, ${teamId}, ${teamName}, TRUE)
             `;
             
-        // Create the first match
-        const teamIds = TEAMS_DATA.map(t => t.id);
-        const p2_team = teamIds[Math.floor(Math.random() * teamIds.length)];
-        const [match] = await sql`
+            // Create the first match
+            const teamIds = TEAMS_DATA.map(t => t.id);
+            const p2_team = teamIds[Math.floor(Math.random() * teamIds.length)];
+            const matchResult = await sql`
                 INSERT INTO penalty_matches (room_id, player1_wallet, player2_wallet, p1_team_id, p2_team_id, is_ai)
                 VALUES (${roomId}, ${wallet}, 'COMPUTER', ${teamId}, ${p2_team}, TRUE)
                 RETURNING id
             `;
             
-            return NextResponse.json({ success: true, roomId, matchId: match.id });
+            if (!matchResult || matchResult.length === 0) {
+                return NextResponse.json({ success: false, error: 'Failed to create solo match' }, { status: 500 });
+            }
+
+            return NextResponse.json({ success: true, roomId, matchId: matchResult[0].id });
         }
 
         if (type === 'TOURNAMENT' && !inviteCode) {
+            console.log(`[LOBBY] Creating TOURNAMENT for ${wallet}, tier: ${entryFee}`);
             // Create a new private tournament
             finalInviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const [newRoom] = await sql`
+            const roomResult = await sql`
                 INSERT INTO penalty_rooms (entry_fee, type, max_players, invite_code, status, participant_count) 
                 VALUES (${entryFee}, 'TOURNAMENT', ${maxPlayers || 8}, ${finalInviteCode}, 'LOBBY', 1)
                 RETURNING id
             `;
-            roomId = newRoom.id;
+            if (!roomResult || roomResult.length === 0) {
+                console.error("[LOBBY ERROR] Failed to create tournament room");
+                return NextResponse.json({ success: false, error: 'Failed to create tournament room' }, { status: 500 });
+            }
+            roomId = roomResult[0].id;
+
             await sql`
                 INSERT INTO penalty_room_participants (room_id, wallet_address, team_id, team_name, email) 
                 VALUES (${roomId}, ${wallet}, ${teamId || null}, ${teamName || null}, ${email || null})
@@ -127,20 +153,26 @@ export async function POST(req: NextRequest) {
                 if (matches.length === 0) {
                     // Start match action was likely needed or should be auto-triggered here for consistency
                     const participants = await sql`SELECT wallet_address, team_id FROM penalty_room_participants WHERE room_id = ${roomId}`;
-                    const [match] = await sql`
+                    const matchResult = await sql`
                         INSERT INTO penalty_matches (room_id, player1_wallet, player2_wallet, p1_team_id, p2_team_id, is_ai)
                         VALUES (${roomId}, ${participants[0].wallet_address}, ${participants[1].wallet_address}, ${participants[0].team_id}, ${participants[1].team_id}, FALSE)
                         RETURNING id
                     `;
-                    return NextResponse.json({ success: true, roomId, matchId: match.id });
+                    if (!matchResult || matchResult.length === 0) {
+                        return NextResponse.json({ success: false, error: 'Failed to create match' }, { status: 500 });
+                    }
+                    return NextResponse.json({ success: true, roomId, matchId: matchResult[0].id });
                 }
             } else {
-                const [newRoom] = await sql`
+                const roomResult = await sql`
                     INSERT INTO penalty_rooms (entry_fee, type, status, participant_count) 
                     VALUES (${entryFee}, 'PVP', 'OPEN', 1)
                     RETURNING id
                 `;
-                roomId = newRoom.id;
+                if (!roomResult || roomResult.length === 0) {
+                    return NextResponse.json({ success: false, error: 'Failed to create PvP room' }, { status: 500 });
+                }
+                roomId = roomResult[0].id;
                 await sql`INSERT INTO penalty_room_participants (room_id, wallet_address, team_id, team_name) VALUES (${roomId}, ${wallet}, ${teamId}, ${teamName})`;
             }
         }
