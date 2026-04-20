@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import crypto from 'crypto';
+import { EmailService } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
     try {
@@ -26,8 +27,26 @@ export async function POST(req: NextRequest) {
             VALUES (${email}, ${twitter || null}, ${instagram || null}, ${trackingRef})
         `;
 
-        // Return the tracking ref so the frontend can build the share URL
-        return NextResponse.json({ success: true, trackingRef });
+        // 1. Return the tracking ref so the frontend can build the share URL
+        const response = NextResponse.json({ success: true, trackingRef });
+
+        // 2. Trigger Notification (Async fire-and-forget)
+        try {
+            const statsArr = await sql`SELECT notification_email, notification_frequency FROM platform_stats WHERE id = 1`;
+            const stats = statsArr[0];
+            
+            if (stats && stats.notification_email && stats.notification_frequency === 'INSTANT') {
+                EmailService.notifyNewSignup(stats.notification_email, {
+                    email,
+                    type: 'WAITLIST',
+                    wallet: wallet || undefined
+                }).catch(e => console.error("[NOTIF ERROR] Failed to send instant email:", e));
+            }
+        } catch (e) {
+            console.error("[NOTIF ERROR] Failed to fetch settings for email:", e);
+        }
+
+        return response;
 
     } catch (e: any) {
         console.error("Waitlist API Error:", e);

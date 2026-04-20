@@ -10,17 +10,20 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
         }
 
-        const updateResult = await sql`UPDATE users SET balance = balance + ${amount} WHERE wallet_address = ${wallet}`;
+        // Conversion Rate: $100 real money = 25,000 Wacky Coins -> multiplier is 250.
+        const coinsToCredit = amount * 250;
+
+        const updateResult = await sql`UPDATE users SET balance = balance + ${amount}, wc_balance = wc_balance + ${coinsToCredit} WHERE wallet_address = ${wallet}`;
 
         if (updateResult.count === 0) {
             // User doesn't exist yet, insert them
-            await sql`INSERT INTO users (wallet_address, balance) VALUES (${wallet}, ${1000 + amount})`;
+            await sql`INSERT INTO users (wallet_address, balance, wc_balance) VALUES (${wallet}, ${amount}, ${10000 + coinsToCredit})`;
         }
 
-        const users = await sql`SELECT balance FROM users WHERE wallet_address = ${wallet}`;
-        const user = users[0] as { balance: number };
+        const users = await sql`SELECT balance, wc_balance FROM users WHERE wallet_address = ${wallet}`;
+        const user = users[0] as { balance: number, wc_balance: number };
 
-        return NextResponse.json({ success: true, newBalance: user.balance });
+        return NextResponse.json({ success: true, newBalance: user.balance, newWcBalance: user.wc_balance, depositedCash: amount, coinsCredited: coinsToCredit });
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Server error' }, { status: 500 });

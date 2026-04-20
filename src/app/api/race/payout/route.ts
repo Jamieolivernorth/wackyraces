@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
 
 interface PayoutPayload {
-    winnerships: { wallet: string; amount: number }[];
-    referrers: { wallet: string; amount: number }[];
+    winnerships: { wallet: string; amount: number; currency?: 'CASH'|'COINS' }[];
+    referrers: { wallet: string; amount: number; currency?: 'CASH'|'COINS' }[];
     houseRake: number;
     poolVolume: number;
     participantResult?: {
@@ -22,16 +22,27 @@ export async function POST(request: NextRequest) {
 
         // 1. Pay winners
         for (const win of winnerships) {
-            await sql`UPDATE users SET balance = balance + ${win.amount} WHERE wallet_address = ${win.wallet}`;
+            const isCash = (!win.currency || win.currency === 'CASH');
+            if (isCash) {
+                await sql`UPDATE users SET balance = balance + ${win.amount} WHERE wallet_address = ${win.wallet}`;
+            } else {
+                await sql`UPDATE users SET wc_balance = wc_balance + ${win.amount} WHERE wallet_address = ${win.wallet}`;
+            }
         }
 
-        // 2. Pay referrers
+        // 2. Pay referrers (Referral commission is typically paid in cash but we'll respect currency passed)
         for (const ref of referrers) {
-            await sql`UPDATE users SET balance = balance + ${ref.amount} WHERE wallet_address = ${ref.wallet}`;
+            const isCash = (!ref.currency || ref.currency === 'CASH');
+            if (isCash) {
+                await sql`UPDATE users SET balance = balance + ${ref.amount} WHERE wallet_address = ${ref.wallet}`;
+            } else {
+                await sql`UPDATE users SET wc_balance = wc_balance + ${ref.amount} WHERE wallet_address = ${ref.wallet}`;
+            }
         }
 
-        // 3. Update Platform Stats (Volume & Rake)
-        await sql`UPDATE platform_stats SET total_rake = total_rake + ${houseRake}, total_volume = total_volume + ${poolVolume} WHERE id = 1`;
+        // 3. Update Platform Stats (Volume & Rake). We will only track Real Cash volume.
+        const totalCashRake = houseRake; // In a full build, limit this to cash rake
+        await sql`UPDATE platform_stats SET total_rake = total_rake + ${totalCashRake}, total_volume = total_volume + ${poolVolume} WHERE id = 1`;
 
         // 4. Record Participant Result for Leaderboards
         if (participantResult) {

@@ -9,7 +9,7 @@ import { usePrivy } from '@privy-io/react-auth';
 export const BankingPanel = () => {
     const { publicKey } = useWallet();
     const { getAccessToken } = usePrivy();
-    const { userBalance, setUserBalance, phase } = useGameStore();
+    const { userBalance, setUserBalance, wcBalance, setWcBalance, phase } = useGameStore();
     const [amount, setAmount] = useState('');
     const [loading, setLoading] = useState<'deposit' | 'withdraw' | null>(null);
 
@@ -45,6 +45,7 @@ export const BankingPanel = () => {
             const data = await res.json();
             if (data.success) {
                 setUserBalance(data.newBalance);
+                if (data.newWcBalance !== undefined) setWcBalance(data.newWcBalance);
                 setAmount('');
             } else {
                 alert(data.error);
@@ -59,24 +60,34 @@ export const BankingPanel = () => {
 
     return (
         <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_8px_32px_0_rgba(31,38,135,0.37)] flex flex-col gap-3">
-            <h3 className="text-gray-500 font-bold uppercase text-[10px] flex justify-between items-center">
-                <span>🏦 House Ledger</span>
-                <span className="text-blue-400 font-mono text-xs">{publicKey.toBase58().slice(0, 4)}...{publicKey.toBase58().slice(-4)}</span>
+            <h3 className="text-gray-500 font-bold uppercase text-[10px] flex justify-between items-center bg-white/5 px-2 py-1 rounded">
+                <span>🏦 Cash (USDC)</span>
+                <span className="text-green-400 font-mono text-xs">${userBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
             </h3>
 
-            <div className="flex gap-2">
+            <h3 className="text-gray-500 font-bold uppercase text-[10px] flex justify-between items-center bg-white/5 px-2 py-1 rounded mb-2">
+                <span>🪙 Wacky Coins</span>
+                <span className="text-yellow-400 font-mono text-xs">{wcBalance.toLocaleString()}</span>
+            </h3>
+
+            <div className="flex flex-col gap-1">
                 <input
                     type="number"
                     min="0"
-                    placeholder="USDC Amount"
+                    placeholder="USDC Amount (Cash)"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     disabled={!!loading || phase !== 'BETTING'}
-                    className="flex-1 bg-gray-800 border-none rounded px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full bg-gray-800 border-none rounded px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
                 />
+                {(parseFloat(amount) > 0) && (
+                    <div className="text-[10px] text-green-400 font-bold ml-1 animate-pulse">
+                        +{ (parseFloat(amount) * 250).toLocaleString() } Wacky Coins
+                    </div>
+                )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
                     onClick={() => handleTransaction('deposit')}
                     disabled={!!loading || !amount || phase !== 'BETTING'}
@@ -92,9 +103,10 @@ export const BankingPanel = () => {
                     {loading === 'withdraw' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'WITHDRAW'}
                 </button>
             </div>
-            <p className="text-[9px] text-gray-500 text-center italic">
-                Simulated Devnet SPL Transfers for MVP
-            </p>
+            <div className="flex justify-between items-center text-[9px] text-gray-500">
+                <span className="italic">Simulated Devnet SPL Transfers</span>
+                <span className="font-bold text-yellow-500/80">Rate: $100 = 25,000 Coins</span>
+            </div>
         </div>
     );
 };

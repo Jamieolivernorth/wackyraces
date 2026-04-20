@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { FootballEventOverlay } from './FootballEventOverlay';
+import { GAME_CONFIG } from '../lib/gameConfig';
 
 export const RaceTrack = () => {
     const contenders = useGameStore((state) => state.contenders);
@@ -163,6 +164,41 @@ export const RaceTrack = () => {
                         START / FINISH
                     </text>
 
+                    {/* 3D-Style Hurdles */}
+                    {mode === 'FOOTBALL' && GAME_CONFIG.hurdles.positions.map(pos => {
+                        const numLanes = Object.keys(contenders).length;
+                        const innerPoint = getPointOnOval(pos, 0); // Inner lane
+                        const outerPoint = getPointOnOval(pos, numLanes - 1); // Outer lane
+
+                        // Extend the lines slightly past the outer lanes
+                        const dx = outerPoint.x - innerPoint.x;
+                        const dy = outerPoint.y - innerPoint.y;
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        const nx = len === 0 ? 0 : dx / len;
+                        const ny = len === 0 ? 0 : dy / len;
+                        
+                        const pStart = { x: innerPoint.x - nx * 15, y: innerPoint.y - ny * 15 };
+                        const pEnd = { x: outerPoint.x + nx * 15, y: outerPoint.y + ny * 15 };
+
+                        return (
+                            <g key={`hurdle-${pos}`}>
+                                {/* Ground Shadow */}
+                                <line x1={pStart.x} y1={pStart.y + 8} x2={pEnd.x} y2={pEnd.y + 8} stroke="#000" strokeWidth="10" opacity="0.6" filter="url(#glow)"/>
+                                {/* Side/Front Face (3D effect) */}
+                                <line x1={pStart.x} y1={pStart.y + 4} x2={pEnd.x} y2={pEnd.y + 4} stroke="#c2410c" strokeWidth="8" />
+                                {/* Top Face */}
+                                <line x1={pStart.x} y1={pStart.y} x2={pEnd.x} y2={pEnd.y} stroke="#ea580c" strokeWidth="6" />
+                                {/* Hazard Stripes Header */}
+                                <line x1={pStart.x} y1={pStart.y} x2={pEnd.x} y2={pEnd.y} stroke="#000" strokeWidth="6" strokeDasharray="15 15" opacity="0.5" />
+                                
+                                {/* Label Optional */}
+                                <text x={pStart.x - nx * 10} y={pStart.y - ny * 10} fill="#f97316" fontSize="10" fontWeight="bold" textAnchor="middle" opacity="0.8">
+                                    {pos}m
+                                </text>
+                            </g>
+                        );
+                    })}
+
                     {/* Contenders Dots */}
                     {Object.values(contenders).map((contender: any, i: number) => {
                         const { x, y } = getPointOnOval(contender.position, i);
@@ -179,7 +215,7 @@ export const RaceTrack = () => {
                                 <circle
                                     r={isWinner ? "20" : "12"}
                                     fill={contender.color}
-                                    filter="url(#glow)"
+                                    filter={contender.isFrozen ? "grayscale(100%) blur(1px)" : "url(#glow)"}
                                     className={isWinner ? "animate-pulse" : ""}
                                 />
                                 <circle
@@ -190,6 +226,22 @@ export const RaceTrack = () => {
                                     opacity="0.9"
                                     className="drop-shadow-lg"
                                 />
+
+                                {mode === 'FOOTBALL' && contender.isFrozen && (
+                                    <text x="0" y="4" fontSize="16" textAnchor="middle" className="drop-shadow-lg">🧊</text>
+                                )}
+
+                                {mode === 'FOOTBALL' && contender.comboScore >= 4 && (
+                                    <foreignObject x="-25" y="-45" width="50" height="50">
+                                        <div className="w-full h-full flex flex-col items-center justify-end text-2xl animate-pulse filter drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]">
+                                            🔥
+                                        </div>
+                                    </foreignObject>
+                                )}
+
+                                {mode === 'FOOTBALL' && contender.terminalPenaltyState && (
+                                    <rect x="-8" y="-18" width="16" height="24" fill="#dc2626" stroke="#fff" strokeWidth="1" rx="2" transform="rotate(15)" className="drop-shadow-lg" />
+                                )}
 
                                 {mode === 'FOOTBALL' && (
                                     <foreignObject x="-50" y="-50" width="100" height="100" className="overflow-visible pointer-events-none">

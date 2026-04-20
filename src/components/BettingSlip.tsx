@@ -50,6 +50,7 @@ export const BettingSlip = () => {
 
                 if (trackStagedBets.length === 0 && trackMyBets.length === 0) return null;
 
+                const currencySymbol = track.currency === 'COINS' ? '🪙 ' : '$';
                 const trackBetsTotal = bets.filter(b => b.trackId === track.id);
                 const totalDraftAmount = trackStagedBets.reduce((sum: number, b: any) => sum + b.amount, 0);
                 const totalPlayerPool = trackBetsTotal.reduce((sum: number, b: any) => sum + b.amount, 0) + totalDraftAmount;
@@ -93,7 +94,7 @@ export const BettingSlip = () => {
                                                     <span className="font-medium text-gray-300">To Win</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-mono text-green-400 font-bold drop-shadow-[0_0_5px_rgba(74,222,128,0.5)]">${bet.amount.toLocaleString()}</span>
+                                                    <span className={`font-mono font-bold drop-shadow-[0_0_5px_rgba(74,222,128,0.5)] ${track.currency === 'COINS' ? 'text-yellow-400' : 'text-green-400'}`}>{currencySymbol}{bet.amount.toLocaleString()}</span>
                                                     <button onClick={() => removeStagedBet(originalIndex)} className="text-gray-500 hover:text-red-400 transition-colors">
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -101,7 +102,9 @@ export const BettingSlip = () => {
                                             </div>
                                             <div className="text-[10px] text-gray-400 mt-2 border-t border-gray-700/50 pt-1 flex justify-between">
                                                 <span>Est. Win If Locked:</span>
-                                                <span className="text-yellow-400 font-mono">${estimatedPayout.toFixed(2)}</span>
+                                                <span className={`font-mono ${track.currency === 'COINS' || track.id === 'sponsored_weekly' ? 'text-yellow-400' : 'text-green-400'}`}>
+                                                    {track.id === 'sponsored_weekly' ? '$' : currencySymbol}{estimatedPayout.toFixed(2)}
+                                                </span>
                                             </div>
                                         </div>
                                     );
@@ -135,11 +138,13 @@ export const BettingSlip = () => {
                                                     </div>
                                                     <span className="font-medium text-gray-400">To Win</span>
                                                 </div>
-                                                <span className="font-mono text-green-500 font-bold">${bet.amount.toLocaleString()}</span>
+                                                <span className={`font-mono font-bold ${track.currency === 'COINS' ? 'text-yellow-500' : 'text-green-500'}`}>{currencySymbol}{bet.amount.toLocaleString()}</span>
                                             </div>
                                             <div className="text-[10px] text-gray-500 mt-2 border-t border-gray-700/30 pt-1 flex justify-between">
                                                 <span>Est. Live Payout:</span>
-                                                <span className="text-yellow-500/80 font-mono">${estimatedPayout.toFixed(2)}</span>
+                                                <span className={`font-mono ${track.currency === 'COINS' || track.id === 'sponsored_weekly' ? 'text-yellow-500/80' : 'text-green-500/80'}`}>
+                                                    {track.id === 'sponsored_weekly' ? '$' : currencySymbol}{estimatedPayout.toFixed(2)}
+                                                </span>
                                             </div>
                                         </div>
                                     );
@@ -149,7 +154,7 @@ export const BettingSlip = () => {
 
                         <div className="border-t border-gray-800 pt-3 flex justify-between items-center mt-1">
                             <span className="text-xs text-gray-500 font-bold uppercase">Staked (Locked)</span>
-                            <span className="font-mono text-white text-sm bg-black/50 px-3 py-1 rounded-lg">${totalStakedTrack.toLocaleString()}</span>
+                            <span className="font-mono text-white text-sm bg-black/50 px-3 py-1 rounded-lg">{currencySymbol}{totalStakedTrack.toLocaleString()}</span>
                         </div>
                     </div>
                 );
@@ -168,7 +173,7 @@ export const BettingSlip = () => {
                     }}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm py-3 rounded-xl transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)]"
                 >
-                    Confirm All Bets (${unconfirmedTotal})
+                    Confirm All Bets
                 </button>
             )}
 

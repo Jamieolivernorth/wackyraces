@@ -11,12 +11,14 @@ export interface TrackConfig {
     entryFee: number;
     minPlayers: number;
     platformSeed: number;
+    currency: 'CASH' | 'COINS';
 }
 
 export const TRACK_CONFIGS: Record<TrackId, TrackConfig> = {
-    casual: { id: 'casual', name: 'Casual', entryFee: 10, minPlayers: 10, platformSeed: 0 },
-    pro: { id: 'pro', name: 'Pro', entryFee: 50, minPlayers: 10, platformSeed: 0 },
-    high_roller: { id: 'high_roller', name: 'High Roller', entryFee: 100, minPlayers: 10, platformSeed: 0 },
+    casual: { id: 'casual', name: 'Le Mans (Casual)', entryFee: 100, minPlayers: 10, platformSeed: 0, currency: 'COINS' },
+    sponsored_weekly: { id: 'sponsored_weekly', name: '$1K Weekly Splash', entryFee: 1000, minPlayers: 10, platformSeed: 0, currency: 'COINS' },
+    pro: { id: 'pro', name: 'Monaco (Pro)', entryFee: 10, minPlayers: 10, platformSeed: 0, currency: 'CASH' },
+    high_roller: { id: 'high_roller', name: 'Mount Panorama (High Roller)', entryFee: 50, minPlayers: 10, platformSeed: 0, currency: 'CASH' },
 };
 
 // Timing configurations
@@ -39,6 +41,7 @@ interface GameState {
     bets: Bet[];
     stagedBets: Bet[];
     userBalance: number;
+    wcBalance: number;
     lastWinner: ContenderId | null;
     history: PastRace[];
     raceId: number;
@@ -64,6 +67,7 @@ export interface GameActions {
     updateLivePrice: (symbol: string, currentPrice: number) => void;
     updateLiveTouches: (contenderId: ContenderId, newTouches: number) => void;
     setUserBalance: (amount: number) => void;
+    setWcBalance: (amount: number) => void;
     setWalletAddress: (address: string | null) => void;
     fetchSettings: () => Promise<void>;
     setGameMode: (mode: GameMode, targetTouches?: number) => void;
@@ -100,7 +104,8 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
         upcomingRaces: initialUpcoming,
         bets: [],
         stagedBets: [],
-        userBalance: 10000,
+        userBalance: 0,
+        wcBalance: 10000,
         lastWinner: null,
         history: [],
         raceId: 1,
@@ -119,6 +124,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
 
         setWalletAddress: (address: string | null) => set({ walletAddress: address }),
         setUserBalance: (amount: number) => set({ userBalance: amount }),
+        setWcBalance: (amount: number) => set({ wcBalance: amount }),
 
         fetchSettings: async () => {
             try {
@@ -137,7 +143,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
         },
         // Actions
         stageBet: (contenderId: ContenderId, amount: number) => {
-            const { userBalance, stagedBets, bets, phase, selectedTrackId } = get();
+            const { userBalance, wcBalance, stagedBets, bets, phase, selectedTrackId } = get();
             if (phase !== 'BETTING' || !selectedTrackId) return;
 
             const track = TRACK_CONFIGS[selectedTrackId];
@@ -150,12 +156,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
             const hasConfirmedEntry = bets.some(b => b.userId === 'me' && b.trackId === selectedTrackId);
             if (hasDraftEntry || hasConfirmedEntry) return;
 
-            if (amount > userBalance) return;
+            const isCoins = track.currency === 'COINS';
+            if (isCoins && amount > wcBalance) return;
+            if (!isCoins && amount > userBalance) return;
 
             set({
                 // allow multiple staged bets if they are across different tracks, 
                 // but user can only build 1 slip per track.
-                stagedBets: [...stagedBets, { contenderId, amount, userId: 'me', trackId: selectedTrackId }]
+                stagedBets: [...stagedBets, { contenderId, amount, userId: 'me', trackId: selectedTrackId, currency: track.currency }]
             });
         },
 
@@ -167,22 +175,27 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
         },
 
         confirmBets: async (token?: string) => {
-            const { stagedBets, userBalance, walletAddress, phase } = get();
+            const { stagedBets, userBalance, wcBalance, walletAddress, phase } = get();
             if (phase !== 'BETTING' || stagedBets.length === 0) return;
 
-            const totalAmount = stagedBets.reduce((sum, b) => sum + b.amount, 0);
-            if (totalAmount > userBalance) return; // safety check
+            // Separate the bets by currency to ensure safe totals
+            const cashBets = stagedBets.filter(b => b.currency === 'CASH');
+            const coinBets = stagedBets.filter(b => b.currency === 'COINS');
+            
+            const totalCash = cashBets.reduce((sum, b) => sum + b.amount, 0);
+            const totalCoins = coinBets.reduce((sum, b) => sum + b.amount, 0);
+
+            if (totalCash > userBalance || totalCoins > wcBalance) return; // safety check
 
             // Optimistic UI update
             set((state) => ({
-                userBalance: state.userBalance - totalAmount,
+                userBalance: state.userBalance - totalCash,
+                wcBalance: state.wcBalance - totalCoins,
                 bets: [...state.bets, ...state.stagedBets],
                 stagedBets: []
             }));
 
             if (walletAddress) {
-                // Background sync all bets sequentially or in a batch if API supported it.
-                // Assuming the API only supports singular bets per endpoint for now.
                 for (const bet of stagedBets) {
                     try {
                         fetch('/api/user/bet', {
@@ -191,7 +204,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                                 'Content-Type': 'application/json',
                                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                             },
-                            body: JSON.stringify({ wallet: walletAddress, amount: bet.amount })
+                            body: JSON.stringify({ wallet: walletAddress, amount: bet.amount, currency: bet.currency })
                         }).catch(err => console.error("Failed to sync staged bet", err));
                     } catch (err) {
                         console.error("Betting error", err);
@@ -293,9 +306,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                     Object.keys(newContenders).forEach((key, index) => {
                         // Prefer the admin defined role, otherwise fallback to positional index
                         const customRole = matchConfigPlayers && matchConfigPlayers[key] ? (matchConfigPlayers[key] as any).role : undefined;
-                        const role = customRole || getRoleFromIndex(index);
+                        const role = customRole || newContenders[key as ContenderId].position_type || getRoleFromIndex(index);
 
-                        const event = footballSimulator.generateEvent(role, newTimePassed);
+                        const event = footballSimulator.generateEvent(role as any, newTimePassed);
                         if (event) {
                             newContenders[key as ContenderId].recentEvents = [
                                 ...(newContenders[key as ContenderId].recentEvents || []),
@@ -372,9 +385,10 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
 
                         const { bets, history, raceId, walletAddress, racingTimePassed: finalDuration, currentRake, referralFee, mode } = get();
 
-                        let totalPayoutToUser = 0;
                         let totalPoolVolume = 0;
                         let totalRake = 0;
+                        let totalAmountWon = 0; // Total numerical value just for history
+                        let winnerships: { wallet: string; amount: number; currency: 'CASH' | 'COINS' }[] = [];
 
                         Object.values(TRACK_CONFIGS).forEach(track => {
                             const trackBets = bets.filter(b => b.trackId === track.id);
@@ -399,7 +413,14 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                                 if (myLostBet) payoutToUser = myLostBet.amount;
                             }
 
-                            totalPayoutToUser += payoutToUser;
+                            if (payoutToUser > 0 && walletAddress) {
+                                let payoutCurrency = track.currency;
+                                if (track.id === 'sponsored_weekly') payoutCurrency = 'CASH'; // sweepstakes override
+                                
+                                winnerships.push({ wallet: walletAddress, amount: Math.floor(payoutToUser), currency: payoutCurrency });
+                                totalAmountWon += Math.floor(payoutToUser);
+                            }
+
                             totalPoolVolume += totalPlayerPool;
                             totalRake += rake;
                         });
@@ -409,19 +430,19 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                                 .then(res => res.json())
                                 .then(user => {
                                     const referrerWallet = user.referred_by;
-                                    const refBonus = totalPayoutToUser > 0 ? (totalPoolVolume * referralFee) : 0;
-                                    const referrers = referrerWallet && refBonus > 0 ? [{ wallet: referrerWallet, amount: refBonus }] : [];
+                                    const refBonus = totalAmountWon > 0 ? (totalPoolVolume * referralFee) : 0;
+                                    const referrers = referrerWallet && refBonus > 0 ? [{ wallet: referrerWallet, amount: refBonus, currency: 'CASH' as const }] : [];
                                     const houseRakeValue = referrerWallet && refBonus > 0 ? (totalPoolVolume * (currentRake - referralFee)) : totalRake;
 
                                     const payload = {
-                                        winnerships: totalPayoutToUser > 0 ? [{ wallet: walletAddress, amount: totalPayoutToUser }] : [],
+                                        winnerships: winnerships,
                                         referrers,
                                         houseRake: houseRakeValue,
                                         poolVolume: totalPoolVolume,
                                         participantResult: {
                                             wallet: walletAddress,
-                                            isWinner: totalPayoutToUser > 0,
-                                            amountWon: totalPayoutToUser,
+                                            isWinner: totalAmountWon > 0,
+                                            amountWon: totalAmountWon,
                                             raceId: `RACE-${raceId}`,
                                             mode: mode
                                         }
@@ -436,8 +457,9 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                                 .then(() => fetch(`/api/user?wallet=${walletAddress}`))
                                 .then(res => res.json())
                                 .then(data => {
-                                    if (data?.balance !== undefined) {
-                                        set({ userBalance: data.balance });
+                                    if (data) {
+                                        if (data.balance !== undefined) set({ userBalance: data.balance });
+                                        if (data.wc_balance !== undefined) set({ wcBalance: data.wc_balance });
                                     }
                                 })
                                 .catch(err => console.error("Payout error:", err));
@@ -455,8 +477,7 @@ export const useGameStore = create<GameState & GameActions>((set, get) => {
                             phase: 'FINISHED',
                             phaseTimeRemaining: PHASE_DURATIONS.FINISHED,
                             lastWinner: winnerId,
-                            lastPayout: totalPayoutToUser,
-                            userBalance: walletAddress ? state.userBalance : state.userBalance + totalPayoutToUser,
+                            lastPayout: totalAmountWon,
                             history: nextHistory,
                             raceId: state.raceId + 1
                         }));

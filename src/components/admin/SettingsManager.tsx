@@ -10,6 +10,8 @@ export const SettingsManager = () => {
     const [rake, setRake] = useState('0.10');
     const [referral, setReferral] = useState('0.02');
     const [onchainEnabled, setOnchainEnabled] = useState(false);
+    const [notifEmail, setNotifEmail] = useState('');
+    const [notifFreq, setNotifFreq] = useState('OFF');
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
@@ -20,6 +22,8 @@ export const SettingsManager = () => {
                 if (data.current_rake !== undefined) setRake(data.current_rake.toString());
                 if (data.referral_fee !== undefined) setReferral(data.referral_fee.toString());
                 if (data.onchain_enabled !== undefined) setOnchainEnabled(data.onchain_enabled === true);
+                if (data.notification_email !== undefined) setNotifEmail(data.notification_email || '');
+                if (data.notification_frequency !== undefined) setNotifFreq(data.notification_frequency || 'OFF');
             })
             .catch(console.error)
             .finally(() => setFetching(false));
@@ -39,7 +43,13 @@ export const SettingsManager = () => {
             await fetch('/api/admin/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ current_rake: parsedRake, referral_fee: parsedRef, onchain_enabled: onchainEnabled })
+                body: JSON.stringify({ 
+                    current_rake: parsedRake, 
+                    referral_fee: parsedRef, 
+                    onchain_enabled: onchainEnabled,
+                    notification_email: notifEmail,
+                    notification_frequency: notifFreq
+                })
             });
             alert('Settings saved successfully!');
         } catch (e) {
@@ -139,6 +149,41 @@ export const SettingsManager = () => {
                         <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                     </label>
                 </div>
+            </div>
+
+            <div className="bg-black/40 border border-gray-800 rounded-xl p-5 mb-6">
+                <h4 className="text-lg font-bold text-gray-200 flex items-center gap-2 mb-4">
+                    <span className="text-xl">📧</span>
+                    Signup Notifications
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Recipient Email Address</label>
+                        <input
+                            type="email"
+                            placeholder="admin@wackyraces.fun"
+                            value={notifEmail}
+                            onChange={(e) => setNotifEmail(e.target.value)}
+                            className="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500 font-sans"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">Notification Frequency</label>
+                        <select 
+                            value={notifFreq}
+                            onChange={(e) => setNotifFreq(e.target.value)}
+                            className="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500 font-sans cursor-pointer"
+                        >
+                            <option value="OFF">Disabled</option>
+                            <option value="INSTANT">Every Sign-up (Instant)</option>
+                            <option value="DAILY">Daily Digest Summary</option>
+                        </select>
+                    </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-4">
+                    Instant sends an email for every entry. Daily Digest sends a summary of all new sign-ups every 24 hours.
+                </p>
             </div>
 
             <button

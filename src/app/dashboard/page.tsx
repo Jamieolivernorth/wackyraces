@@ -14,6 +14,15 @@ export default function DashboardPage() {
     const [privateEntryFee, setPrivateEntryFee] = useState<number>(10);
     const [privateMode, setPrivateMode] = useState<string>('CRYPTO');
     const [isCreatingPrivateRace, setIsCreatingPrivateRace] = useState(false);
+    
+    // Profile Management logic
+    const [dbUser, setDbUser] = useState<any>(null);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [setupUsername, setSetupUsername] = useState('');
+    const [setupAvatar, setSetupAvatar] = useState('/avatars/1.png'); // Fallback string, we will use emojis for ease in this MVP if needed.
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+    const PRESET_AVATARS = ['🐵', '🦊', '🐱', '🦄', '🦖', '🤖'];
 
     const handleCreatePrivateRace = async () => {
         if (!user?.wallet?.address) return;
@@ -43,6 +52,60 @@ export default function DashboardPage() {
         setIsClient(true);
     }, []);
 
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (ready && authenticated && user?.wallet?.address) {
+                try {
+                    const token = await getAccessToken();
+                    const res = await fetch(`/api/user?wallet=${user.wallet.address}`, {
+                        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setDbUser(data);
+                        if (!data.username) {
+                            setIsProfileModalOpen(true);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch user data", e);
+                }
+            }
+        };
+        fetchUserData();
+    }, [ready, authenticated, user?.wallet?.address]);
+
+    const handleSaveProfile = async () => {
+        if (!setupUsername.trim()) return;
+        setIsSavingProfile(true);
+        try {
+            const token = await getAccessToken();
+            const res = await fetch('/api/user/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    wallet_address: user?.wallet?.address,
+                    username: setupUsername.trim(),
+                    avatar_url: setupAvatar
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setDbUser({ ...dbUser, username: data.username, avatar_url: data.avatar_url });
+                setIsProfileModalOpen(false);
+            } else {
+                alert(data.error || 'Failed to save profile');
+            }
+        } catch (e) {
+            alert('An error occurred while saving.');
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
+
     // Redirect if not authenticated (basic protection)
     // BYPASS: If the user is hitting the /demo backdoor URL, bypass this auth check.
     useEffect(() => {
@@ -64,11 +127,13 @@ export default function DashboardPage() {
     }
 
     // Determine user display identifier
-    const userIdentifier = user?.wallet?.address
-        ? `${user.wallet.address.slice(0, 4)}...${user.wallet.address.slice(-4)}`
-        : user?.email?.address
-            ? user.email.address
-            : 'Unknown Operator';
+    const userIdentifier = dbUser?.username 
+        ? dbUser.username 
+        : user?.wallet?.address
+            ? `${user.wallet.address.slice(0, 4)}...${user.wallet.address.slice(-4)}`
+            : user?.email?.address
+                ? user.email.address
+                : 'Unknown Operator';
 
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans flex flex-col selection:bg-blue-500/30">
@@ -88,7 +153,11 @@ export default function DashboardPage() {
 
                 <div className="flex items-center gap-4">
                     <div className="bg-[#111] border border-gray-800 rounded-full px-4 py-1.5 flex items-center gap-2 text-sm font-mono text-gray-400">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        {dbUser?.avatar_url ? (
+                            <span className="text-sm">{dbUser.avatar_url}</span>
+                        ) : (
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        )}
                         {userIdentifier}
                     </div>
                     <button
@@ -120,6 +189,60 @@ export default function DashboardPage() {
                         >
                             Link Email Now
                         </button>
+                    </div>
+                )}
+
+                {/* Profile Setup Blocking Modal */}
+                {isProfileModalOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                        <div className="bg-[#0a0a0a] border border-blue-500/50 rounded-3xl p-8 w-full max-w-lg flex flex-col gap-6 shadow-[0_0_50px_rgba(37,99,235,0.2)]">
+                            <div className="text-center">
+                                <div className="text-5xl mb-4 animate-bounce">🎁</div>
+                                <h3 className="text-3xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600">
+                                    CLAIM 10,000 FREE COINS
+                                </h3>
+                                <p className="text-gray-400 mt-3">
+                                    Welcome to Wacky Races! Set up your racer profile below to unlock the terminals and get your free starting capital.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-4 mt-2">
+                                <div>
+                                    <label className="text-sm font-bold text-gray-300 block mb-2">1. Choose an Avatar</label>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {PRESET_AVATARS.map(avatar => (
+                                            <button
+                                                key={avatar}
+                                                onClick={() => setSetupAvatar(avatar)}
+                                                className={`text-3xl p-2 rounded-xl border transition-all ${setupAvatar === avatar ? 'border-blue-500 bg-blue-500/20 scale-110' : 'border-gray-800 bg-[#111] hover:border-gray-600'}`}
+                                            >
+                                                {avatar}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-bold text-gray-300 block mb-2">2. Enter a Username</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter your racer alias..."
+                                        value={setupUsername}
+                                        onChange={e => setSetupUsername(e.target.value)}
+                                        maxLength={15}
+                                        className="w-full bg-[#111] border border-gray-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleSaveProfile}
+                                disabled={isSavingProfile || !setupUsername.trim()}
+                                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black italic text-xl py-4 rounded-xl mt-4 transition-all shadow-lg"
+                            >
+                                {isSavingProfile ? 'SAVING...' : 'ENTER CONSOLE'}
+                            </button>
+                        </div>
                     </div>
                 )}
 

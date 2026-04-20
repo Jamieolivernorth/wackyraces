@@ -9,6 +9,7 @@ import { usePrivy } from '@privy-io/react-auth';
 function SyncWorker() {
     const { publicKey, connected } = useWallet();
     const setBalance = useGameStore(state => state.setUserBalance);
+    const setWcBalance = useGameStore(state => state.setWcBalance);
     const setWalletAddress = useGameStore(state => state.setWalletAddress);
     const fetchSettings = useGameStore(state => state.fetchSettings);
     const searchParams = useSearchParams();
@@ -48,8 +49,9 @@ function SyncWorker() {
                     const data = await res.json();
 
                     // Note: Handle 403 identity errors gracefully in the UI if needed
-                    if (res.ok && data && data.balance !== undefined) {
-                        setBalance(data.balance);
+                    if (res.ok && data) {
+                        if (data.balance !== undefined) setBalance(data.balance);
+                        if (data.wc_balance !== undefined) setWcBalance(data.wc_balance);
                     } else if (data.error) {
                         console.warn("Wallet Sync Error:", data.error);
                     }
@@ -58,14 +60,15 @@ function SyncWorker() {
                 }
             } else if (ready) {
                 console.log(`[WalletSync] Ready but skipping sync. Auth=${authenticated}, Wallet=${walletAddress}, PrivyWallet=${user?.wallet?.address}`);
-                // Disconnected, revert to 0 or mock 10000
+                // Disconnected
                 setWalletAddress(null);
                 setBalance(0);
+                setWcBalance(0);
             }
         };
 
         syncUser();
-    }, [connected, publicKey, setBalance, setWalletAddress, ref, getAccessToken, user, ready, authenticated]);
+    }, [connected, publicKey, setBalance, setWcBalance, setWalletAddress, ref, getAccessToken, user, ready, authenticated]);
 
     return null;
 }

@@ -109,12 +109,12 @@ export const getRandomMemeContenders = () => {
 };
 
 export const FOOTBALL_PLAYERS = [
-    { id: 'saliba', name: 'W. Saliba', symbol: 'SAL', color: '#EF0107' },
-    { id: 'odegaard', name: 'M. Ødegaard', symbol: 'ODE', color: '#EF0107' },
-    { id: 'saka', name: 'B. Saka', symbol: 'SAK', color: '#EF0107' },
-    { id: 'dias', name: 'R. Dias', symbol: 'DIA', color: '#6CABDD' },
-    { id: 'kdb', name: 'K. De Bruyne', symbol: 'KDB', color: '#6CABDD' },
-    { id: 'haaland', name: 'E. Haaland', symbol: 'HAA', color: '#6CABDD' }
+    { id: 'saliba', name: 'W. Saliba', symbol: 'SAL', color: '#EF0107', position_type: 'DEF' },
+    { id: 'odegaard', name: 'M. Ødegaard', symbol: 'ODE', color: '#EF0107', position_type: 'MID' },
+    { id: 'saka', name: 'B. Saka', symbol: 'SAK', color: '#EF0107', position_type: 'FWD' },
+    { id: 'dias', name: 'R. Dias', symbol: 'DIA', color: '#6CABDD', position_type: 'DEF' },
+    { id: 'kdb', name: 'K. De Bruyne', symbol: 'KDB', color: '#6CABDD', position_type: 'MID' },
+    { id: 'haaland', name: 'E. Haaland', symbol: 'HAA', color: '#6CABDD', position_type: 'FWD' }
 ];
 
 // Returns exactly 6 structured players: DEF, MID, STR, DEF, MID, STR
@@ -127,7 +127,8 @@ export const getFootballContenders = () => {
             currentMetric: 0,
             performance: 0,
             position: 0,
-            recentEvents: []
+            recentEvents: [],
+            position_type: t.position_type
         };
     });
     return contendersObj;

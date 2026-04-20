@@ -21,17 +21,24 @@ async function initDb() {
         wallet_address TEXT PRIMARY KEY,
         privy_id TEXT UNIQUE,
         email TEXT,
-        balance FLOAT DEFAULT 1000,
-        wc_balance FLOAT DEFAULT 0,
+        username TEXT,
+        avatar_url TEXT,
+        balance FLOAT DEFAULT 0,
+        wc_balance FLOAT DEFAULT 10000,
         referred_by TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
 
-    // Try adding the column if table already exists in dev
-    try {
-      await sql`ALTER TABLE users ADD COLUMN privy_id TEXT UNIQUE`;
-    } catch (e) { /* Column likely exists */ }
+    // Try adding the columns if table already exists in dev
+    try { await sql`ALTER TABLE users ADD COLUMN privy_id TEXT UNIQUE`; } catch (e) { /* Column likely exists */ }
+    try { await sql`ALTER TABLE users ADD COLUMN username TEXT`; } catch (e) { }
+    try { await sql`ALTER TABLE users ADD COLUMN avatar_url TEXT`; } catch (e) { }
+    try { await sql`ALTER TABLE users ALTER COLUMN balance SET DEFAULT 0`; } catch (e) { }
+    try { await sql`ALTER TABLE users ALTER COLUMN wc_balance SET DEFAULT 10000`; } catch (e) { }
+    
+    // Migration: Move legacy test cash (if > 1000 and wc=0) into Wacky Coins
+    try { await sql`UPDATE users SET wc_balance = balance, balance = 0 WHERE wc_balance = 0 AND balance >= 1000`; } catch (e) { }
 
     // Create Platform Stats table
     await sql`
@@ -40,7 +47,10 @@ async function initDb() {
         total_rake FLOAT DEFAULT 0,
         total_volume FLOAT DEFAULT 0,
         current_rake FLOAT DEFAULT 0.10,
-        referral_fee FLOAT DEFAULT 0.02
+        referral_fee FLOAT DEFAULT 0.02,
+        onchain_enabled BOOLEAN DEFAULT FALSE,
+        notification_email TEXT DEFAULT NULL,
+        notification_frequency TEXT DEFAULT 'OFF' -- 'OFF', 'INSTANT', 'DAILY'
       )
     `;
 
@@ -48,9 +58,10 @@ async function initDb() {
     try {
       await sql`ALTER TABLE platform_stats ADD COLUMN current_rake FLOAT DEFAULT 0.10`;
     } catch (e) { /* Column likely exists */ }
-    try {
-      await sql`ALTER TABLE platform_stats ADD COLUMN referral_fee FLOAT DEFAULT 0.02`;
-    } catch (e) { /* Column likely exists */ }
+    try { await sql`ALTER TABLE platform_stats ADD COLUMN referral_fee FLOAT DEFAULT 0.02`; } catch (e) { }
+    try { await sql`ALTER TABLE platform_stats ADD COLUMN onchain_enabled BOOLEAN DEFAULT FALSE`; } catch (e) { }
+    try { await sql`ALTER TABLE platform_stats ADD COLUMN notification_email TEXT DEFAULT NULL`; } catch (e) { }
+    try { await sql`ALTER TABLE platform_stats ADD COLUMN notification_frequency TEXT DEFAULT 'OFF'`; } catch (e) { }
 
     // Ensure row 1 exists in stats
     const checkStats = await sql`SELECT id FROM platform_stats WHERE id = 1`;

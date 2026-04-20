@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sql from '@/lib/db';
 import { PrivyClient } from '@privy-io/server-auth';
+import { EmailService } from '@/lib/email';
 
 // Initialize Privy client for server-side validation
 const privy = new PrivyClient(
@@ -90,6 +91,24 @@ export async function GET(request: NextRequest) {
 
             users = await sql`SELECT * FROM users WHERE wallet_address = ${wallet}`;
             user = users[0];
+
+            // Trigger Notification (Async fire-and-forget)
+            if (user) {
+                try {
+                    const statsArr = await sql`SELECT notification_email, notification_frequency FROM platform_stats WHERE id = 1`;
+                    const stats = statsArr[0];
+                    
+                    if (stats && stats.notification_email && stats.notification_frequency === 'INSTANT') {
+                        EmailService.notifyNewSignup(stats.notification_email, {
+                            email: userEmail || 'No Email Linked',
+                            type: 'USER',
+                            wallet: wallet
+                        }).catch(e => console.error("[NOTIF ERROR] Failed to send instant app signup email:", e));
+                    }
+                } catch (e) {
+                    console.error("[NOTIF ERROR] Failed to fetch settings for email:", e);
+                }
+            }
         } else if (user && !user.email) {
             // Optional: Sync email for existing users if missing
             const authHeader = request.headers.get('authorization');

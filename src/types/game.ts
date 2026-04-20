@@ -1,15 +1,18 @@
 export type ContenderId = string;
-export type TrackId = 'casual' | 'pro' | 'high_roller';
+export type TrackId = 'casual' | 'pro' | 'high_roller' | 'sponsored_weekly';
 
 export type GameMode = 'CRYPTO' | 'FOOTBALL' | 'MEME';
 
-export type FootballEventType = 'Touch' | 'Pass' | 'ForwardPass' | 'KeyPass' | 'Shot' | 'ShotOnTarget' | 'Assist' | 'Goal' | 'Dispossessed' | 'YellowCard' | 'RedCard';
+export type FootballEventType = 
+  | 'touch' | 'forward_pass' | 'key_pass' | 'shot_on_target' | 'assist' | 'goal' 
+  | 'lost_possession' | 'foul_committed' | 'yellow_card' | 'red_card';
 
 export interface FootballEvent {
   id: string;
   type: FootballEventType;
   points: number;
   timestamp: number; // relative to racingTimePassed
+  comboEligible?: boolean;
 }
 
 // Generalized participant in the race
@@ -27,7 +30,15 @@ export interface Contender {
 
   performance: number;   // Percentage change for Crypto
   position: number;      // 0 to 100 representing percentage around the track
-  recentEvents?: FootballEvent[]; // Football rolling 30s window events
+  recentEvents?: FootballEvent[]; // Football rolling window events
+  
+  // Game Mechanics Additions
+  position_type?: 'GK' | 'DEF' | 'MID' | 'FWD'; // For Football multipliers
+  isFrozen?: boolean;
+  frozenUntil?: number; // timestamp until they can move again
+  terminalPenaltyState?: boolean; // When red card is struck
+  comboScore?: number; // Tracking combo streak
+  comboLastEventTime?: number; // Tracking time since last combo event
 }
 
 export interface PastRace {
@@ -48,7 +59,7 @@ export type GamePhase = 'BETTING' | 'LOCKED' | 'RACING' | 'PHOTO_FINISH' | 'FINI
 export const PHASE_DURATIONS = {
   BETTING: 180, // 3 mins actually, let's make it shorter for MVP
   LOCKED: 30,
-  RACING: 60,
+  RACING: 300, // 5 minute standard race
   FINISHED: 30,
 };
 
@@ -57,4 +68,5 @@ export interface Bet {
   contenderId: ContenderId;
   amount: number;
   trackId: TrackId;
+  currency: 'CASH' | 'COINS';
 }
